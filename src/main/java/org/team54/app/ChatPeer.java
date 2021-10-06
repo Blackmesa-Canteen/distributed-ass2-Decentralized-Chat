@@ -56,16 +56,16 @@ public class ChatPeer {
                 cmdLineParser.parseArgument(args);
 
                 if (option.listenPort != Constants.NON_PORT_DESIGNATED
-                        && option.listenPort < 1
-                        || option.listenPort > 65535) {
+                        && (option.listenPort < 1
+                        || option.listenPort > 65535)) {
                     // port too large
                     System.out.println("port should in [1,65535]");
                     System.exit(-1);
                 }
 
                 if (option.clientPort != Constants.NON_PORT_DESIGNATED
-                        && option.clientPort < 1
-                        || option.clientPort > 65535) {
+                        && (option.clientPort < 1
+                        || option.clientPort > 65535)) {
                     // port too large
                     System.out.println("port should in [1,65535]");
                     System.exit(-1);
@@ -74,6 +74,7 @@ public class ChatPeer {
                 serverListenPort = (int) option.listenPort;
                 clientPort = (int) option.clientPort;
             }
+
         } catch (CmdLineException e) {
             System.out.println("Command line error: " + e.getMessage());
             argHelpInfo(cmdLineParser);
