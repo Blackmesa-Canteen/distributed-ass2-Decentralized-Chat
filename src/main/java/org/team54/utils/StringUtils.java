@@ -9,6 +9,20 @@ package org.team54.utils;
 public class StringUtils {
 
     /**
+     * verify whether the room id is valid or not
+     * @param roomId string
+     * @return is valid name?
+     */
+    public static boolean isValidRoomId(String roomId) {
+        if (roomId.length() >= 3 && roomId.length() <= 32) {
+            String regex = "^[a-zA-Z]+[A-Za-z0-9]+$";
+            return roomId.matches(regex);
+        }
+
+        return false;
+    }
+
+    /**
      * parse "192.168.1.9" out of "192.168.1.9:5000"
      * @param hostText str like "192.168.1.9:5000"
      * @return string hostname

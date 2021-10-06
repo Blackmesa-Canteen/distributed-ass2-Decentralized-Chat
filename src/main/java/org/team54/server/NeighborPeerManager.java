@@ -44,6 +44,8 @@ public class NeighborPeerManager {
      */
     public void registerNewSocketChannelAsNeighbor(SocketChannel newSocketChannel) {
         try {
+
+            // get socketChannel host info for peer id
             InetSocketAddress remoteAddress = (InetSocketAddress) newSocketChannel.getRemoteAddress();
             String hostText = remoteAddress.getHostString() + ":" + remoteAddress.getPort();
 
@@ -102,6 +104,7 @@ public class NeighborPeerManager {
 
         // try to close this peer connection
         peer.getPeerConnection().closeMe();
+        peer.setPeerConnection(null);
     }
 
     /**
