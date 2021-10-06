@@ -1,9 +1,6 @@
 package org.team54.model;
 
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import lombok.ToString;
+import lombok.*;
 
 /**
  * @author Xiaotian
@@ -13,6 +10,7 @@ import lombok.ToString;
  */
 @Data
 @Builder
+@AllArgsConstructor
 @NoArgsConstructor
 @ToString
 public class Peer {
@@ -23,4 +21,8 @@ public class Peer {
     private String roomId;
 
     private PeerConnection peerConnection;
+
+    /** c2s host info, get from "hostchange" message that is sent upon connection */
+    private String hostName;
+    private int hostPort;
 }

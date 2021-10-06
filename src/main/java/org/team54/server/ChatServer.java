@@ -26,7 +26,7 @@ public class ChatServer implements Runnable {
     /**
      * The host:port combination to listen on
      */
-    private InetAddress hostAddress;
+    private final InetAddress hostAddress;
     private final int port;
 
     private boolean isRunning = false;
@@ -48,6 +48,8 @@ public class ChatServer implements Runnable {
 
     private final MessageQueueWorker MQWorker;
 
+    private final NeighborPeerManager neighborPeerManager;
+
     public ChatServer(InetAddress hostAddress, int port, MessageQueueWorker MQWorker) throws IOException {
         this.hostAddress = hostAddress;
         this.port = port;
@@ -58,6 +60,7 @@ public class ChatServer implements Runnable {
         // init selector
         this.selector = this.initSelector();
         this.MQWorker = MQWorker;
+        this.neighborPeerManager = NeighborPeerManager.getInstance();
     }
 
     /**
@@ -68,6 +71,8 @@ public class ChatServer implements Runnable {
      */
     @Override
     public void run() {
+        // run MQ manager
+        new Thread(MQWorker).start();
         listen();
     }
 
@@ -124,18 +129,29 @@ public class ChatServer implements Runnable {
                 // register this channel
                 registerChannel(selector, socketChannel, SelectionKey.OP_READ);
 
+                // register this new connected peer into manager
+                neighborPeerManager.registerNewSocketChannelAsNeighbor(socketChannel);
+
             } else if (key.isReadable()) {
                 // if channel is ready to read, read from channel
                 socketChannel = (SocketChannel) key.channel();
 
                 // get incoming string
                 String incomingString = readStringFromChannel(socketChannel);
+
+                // get source peer based on socketChannel
+                Peer srcPeer = neighborPeerManager.getPeerWithSocketChannel(socketChannel);
+
+                // put in the MQ waiting for running
+                // handle logic is in 'handleRequest' method that is in this ChatServer class
+                MQWorker.handleIncomingTextMessage(this, srcPeer, incomingString);
             }
         } catch (Throwable t) {
             t.printStackTrace();
             // close buggy channel
             if (socketChannel != null) {
-                socketChannel.close();
+//                socketChannel.close();
+                neighborPeerManager.handleDisconnectNeighborSocketChannel(socketChannel);
             }
         }
 
@@ -185,7 +201,8 @@ public class ChatServer implements Runnable {
             // but no message is received, that is, the read method returns -1.
             // Therefore, the server also needs to close the channel to avoid
             // infinite invalid processing.
-            socketChannel.close();
+//            socketChannel.close();
+            neighborPeerManager.handleDisconnectNeighborSocketChannel(socketChannel);
 
         } else {
             // switch write mode to read mode

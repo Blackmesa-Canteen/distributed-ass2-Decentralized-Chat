@@ -1,5 +1,6 @@
 package org.team54.model;
 
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -17,6 +18,7 @@ import java.nio.channels.SocketChannel;
  */
 @Data
 @Builder
+@AllArgsConstructor
 @NoArgsConstructor
 public class PeerConnection {
     private Peer peer;
@@ -42,8 +44,17 @@ public class PeerConnection {
 
     /**
      * close the channel
+     * if has been closed, do nothing
      */
-    public void closeMe() throws IOException {
-        socketChannel.close();
+    public void closeMe(){
+        if (socketChannel != null && socketChannel.isConnected()) {
+            try {
+                socketChannel.close();
+            } catch (IOException e) {
+                System.out.println("err in PeerConnection");
+                e.printStackTrace();
+            }
+        }
+
     }
 }

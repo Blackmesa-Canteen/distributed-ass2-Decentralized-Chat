@@ -31,7 +31,6 @@ public class ChatPeer {
 
         // init server listening logic
         MessageQueueWorker MQWorker = new MessageQueueWorker();
-        new Thread(MQWorker).start();
         server = new ChatServer(null, serverListenPort, MQWorker);
         new Thread(server).start();
 

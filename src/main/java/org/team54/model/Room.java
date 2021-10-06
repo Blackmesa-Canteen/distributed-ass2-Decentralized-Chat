@@ -1,9 +1,6 @@
 package org.team54.model;
 
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import lombok.ToString;
+import lombok.*;
 
 import java.util.ArrayList;
 
@@ -16,6 +13,7 @@ import java.util.ArrayList;
 @Data
 @Builder
 @NoArgsConstructor
+@AllArgsConstructor
 @ToString
 public class Room {
 

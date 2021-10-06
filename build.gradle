@@ -19,6 +19,7 @@ dependencies {
 
     // https://mvnrepository.com/artifact/org.projectlombok/lombok
     compileOnly group: 'org.projectlombok', name: 'lombok', version: '1.18.20'
+    annotationProcessor group: 'org.projectlombok', name: 'lombok', version: '1.18.20'
 
     // https://mvnrepository.com/artifact/args4j/args4j
     implementation group: 'args4j', name: 'args4j', version: '2.32'

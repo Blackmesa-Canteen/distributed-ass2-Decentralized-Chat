@@ -12,8 +12,8 @@ import java.nio.charset.*;
  */
 public class CharsetConvertor {
     private static final String UTF_8 = "UTF-8";
-    private static CharsetEncoder encoder = Charset.forName(UTF_8).newEncoder();
-    private static CharsetDecoder decoder = Charset.forName(UTF_8).newDecoder();
+    private static final CharsetEncoder encoder = Charset.forName(UTF_8).newEncoder();
+    private static final CharsetDecoder decoder = Charset.forName(UTF_8).newDecoder();
 
     public static ByteBuffer encode(CharBuffer in) throws CharacterCodingException {
         return encoder.encode(in);
@@ -23,7 +23,7 @@ public class CharsetConvertor {
         return decoder.decode(in);
     }
 
-    public static String StringToUtf8(String str) {
+    public static String stringToUtf8(String str) {
         return new String(str.getBytes(StandardCharsets.UTF_8), StandardCharsets.UTF_8);
     }
 }
