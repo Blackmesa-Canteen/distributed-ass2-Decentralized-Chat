@@ -20,6 +20,6 @@ public class Room {
     private String roomId;
     private ArrayList<Peer> peers;
 
-    /** owner will always be creator */
-    private Peer owner;
+    /* owner will always be creator */
+//    private Peer owner;
 }

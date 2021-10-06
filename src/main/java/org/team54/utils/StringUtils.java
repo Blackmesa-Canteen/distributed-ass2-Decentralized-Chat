@@ -14,7 +14,7 @@ public class StringUtils {
      * @return is valid name?
      */
     public static boolean isValidRoomId(String roomId) {
-        if (roomId.length() >= 3 && roomId.length() <= 32) {
+        if (roomId != null && roomId.length() >= 3 && roomId.length() <= 32) {
             String regex = "^[a-zA-Z]+[A-Za-z0-9]+$";
             return roomId.matches(regex);
         }

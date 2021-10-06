@@ -139,17 +139,10 @@ public class NeighborPeerManager {
      * @return peers arraylist
      */
     public List<Peer> getAllNeighborPeers() {
-        Collection<Peer> values = null;
-
-        synchronized (neighborPeerMap) {
-            values = neighborPeerMap.values();
-        }
-
-        Iterator<Peer> iterator = values.iterator();
         ArrayList<Peer> res = new ArrayList<>();
-
-        while (iterator.hasNext()) {
-            res.add(iterator.next());
+        synchronized (neighborPeerMap) {
+            Collection<Peer> values = neighborPeerMap.values();
+            res.addAll(values);
         }
 
         return res;
