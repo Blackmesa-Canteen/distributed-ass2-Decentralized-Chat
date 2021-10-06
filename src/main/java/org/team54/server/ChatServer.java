@@ -1,5 +1,6 @@
 package org.team54.server;
 
+import org.team54.model.Peer;
 import org.team54.utils.CharsetConvertor;
 import org.team54.utils.Constants;
 
@@ -45,7 +46,9 @@ public class ChatServer implements Runnable {
      */
     private final ByteBuffer readBuffer;
 
-    public ChatServer(InetAddress hostAddress, int port, Selector selector) throws IOException {
+    private final MessageQueueWorker MQWorker;
+
+    public ChatServer(InetAddress hostAddress, int port, MessageQueueWorker MQWorker) throws IOException {
         this.hostAddress = hostAddress;
         this.port = port;
 
@@ -54,7 +57,7 @@ public class ChatServer implements Runnable {
 
         // init selector
         this.selector = this.initSelector();
-
+        this.MQWorker = MQWorker;
     }
 
     /**
@@ -88,7 +91,7 @@ public class ChatServer implements Runnable {
 
                     handleKey(key);
 
-                    // remove duplicates
+                    // remove this duplicate
                     keyIterator.remove();
                 }
 
@@ -106,39 +109,54 @@ public class ChatServer implements Runnable {
      * @throws ClosedChannelException
      */
     private void handleKey(SelectionKey key) throws IOException, ClosedChannelException {
-        SocketChannel acceptedChannel = null;
+
+        SocketChannel socketChannel = null;
 
         try {
-
             // if selectionKey can be accepted, start to get connection
             if (key.isAcceptable()) {
                 // get incoming channel
-                ServerSocketChannel server = (ServerSocketChannel) key.channel();
+                ServerSocketChannel serverSocketChannel = (ServerSocketChannel) key.channel();
 
                 // accept this channel
-                acceptedChannel = server.accept();
+                socketChannel = serverSocketChannel.accept();
 
                 // register this channel
-                registerChannel(selector, acceptedChannel, SelectionKey.OP_READ);
+                registerChannel(selector, socketChannel, SelectionKey.OP_READ);
 
-                // if channel is ready to read, read from channel
             } else if (key.isReadable()) {
-                acceptedChannel = (SocketChannel) key.channel();
+                // if channel is ready to read, read from channel
+                socketChannel = (SocketChannel) key.channel();
 
                 // get incoming string
-                String incomingString = readStringFromChannel(acceptedChannel);
-
+                String incomingString = readStringFromChannel(socketChannel);
             }
         } catch (Throwable t) {
             t.printStackTrace();
             // close buggy channel
-            if (acceptedChannel != null) {
-                acceptedChannel.close();
+            if (socketChannel != null) {
+                socketChannel.close();
             }
         }
 
     }
 
+    /**
+     * parse incoming text request, and react to it
+     * @param sourcePeer
+     * @param text
+     */
+    public void handleRequest(Peer sourcePeer, String text) {
+
+    }
+
+    /**
+     * register the socketChannel to a selector
+     * @param selector
+     * @param channel
+     * @param opRead
+     * @throws IOException
+     */
     private void registerChannel(Selector selector, SocketChannel channel, int opRead)
             throws IOException {
         if (channel == null) {
@@ -170,7 +188,7 @@ public class ChatServer implements Runnable {
             socketChannel.close();
 
         } else {
-            // from write mode to read mode
+            // switch write mode to read mode
             readBuffer.flip();
 
             // convert char to UTF-8 string

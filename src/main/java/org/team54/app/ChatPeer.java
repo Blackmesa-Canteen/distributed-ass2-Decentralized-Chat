@@ -2,7 +2,11 @@ package org.team54.app;
 
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
+import org.team54.server.ChatServer;
+import org.team54.server.MessageQueueWorker;
 import org.team54.utils.Constants;
+
+import java.io.IOException;
 
 /**
  * @author Xiaotian
@@ -18,14 +22,21 @@ public class ChatPeer {
     /** client connect port: -i, if not designated in argument, use OS random port !! */
     private static int clientPort = Constants.NON_PORT_DESIGNATED;
 
-    public static void main(String[] args) {
+    private static ChatServer server;
+
+    public static void main(String[] args) throws IOException {
 
         // handle args
         handleArgs(args);
 
         // init server listening logic
+        MessageQueueWorker MQWorker = new MessageQueueWorker();
+        new Thread(MQWorker).start();
+        server = new ChatServer(null, serverListenPort, MQWorker);
+        new Thread(server).start();
 
         // init client logic
+
     }
 
     private static void handleArgs(String[] args) {

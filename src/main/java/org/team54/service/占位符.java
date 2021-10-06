@@ -1,4 +1,4 @@
-package org.team54.pojo;
+package org.team54.service;
 
 /**
  * @author Xiaotian
