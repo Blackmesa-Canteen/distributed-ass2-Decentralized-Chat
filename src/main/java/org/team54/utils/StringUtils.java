@@ -1,5 +1,7 @@
 package org.team54.utils;
 
+import java.net.InetSocketAddress;
+
 /**
  * @author Xiaotian
  * @program distributed-ass2-Decentralized-Chat
@@ -69,6 +71,16 @@ public class StringUtils {
         }
 
         return res;
+    }
+
+    /**
+     * simple method to gen "192.168.1.1:8080" like string from InetSocketAddress obj
+     *
+     * @param inetSocketAddress InetSocketAddress obj
+     * @return hosttext
+     */
+    public static String getHostTextFromInetSocketAddress(InetSocketAddress inetSocketAddress) {
+        return inetSocketAddress.getHostString() + ":" + inetSocketAddress.getPort();
     }
 
     /**

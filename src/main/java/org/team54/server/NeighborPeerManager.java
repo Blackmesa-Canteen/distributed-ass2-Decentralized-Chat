@@ -3,6 +3,8 @@ package org.team54.server;
 import org.team54.model.Peer;
 import org.team54.model.PeerConnection;
 import org.team54.utils.Constants;
+import org.team54.utils.StringUtils;
+
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.channels.SocketChannel;
@@ -18,9 +20,10 @@ import java.util.concurrent.ConcurrentHashMap;
 public class NeighborPeerManager {
 
     private static NeighborPeerManager instance;
+    private ChatServer chatServer;
 
     private final ConcurrentHashMap<SocketChannel, Peer> neighborPeerMap;
-    private final HashSet<String> peerHostNameBlackList;
+    private final HashSet<String> peerConnectionTextBlackList;
     private final ConcurrentHashMap<String, Peer> livingPeers;
     private final ChatRoomManager chatRoomManager;
 
@@ -34,9 +37,66 @@ public class NeighborPeerManager {
 
     private NeighborPeerManager() {
         neighborPeerMap = new ConcurrentHashMap<>();
-        peerHostNameBlackList = new HashSet<>();
+        peerConnectionTextBlackList = new HashSet<>();
         chatRoomManager = ChatRoomManager.getInstance();
         livingPeers = new ConcurrentHashMap<>();
+    }
+
+    public void setChatServer(ChatServer chatServer) {
+        this.chatServer = chatServer;
+    }
+
+    /**
+     * in initial setup, the peer's identity's id's port is NOT listen port
+     * now change it to the listen port
+     * <p>
+     * After this, the peer will be accepted.
+     *
+     * @param peer        peer
+     * @param newIdentity new host text
+     */
+    public void updatePeerIdentityIdPort(Peer peer, String newIdentity) {
+
+        String originalPeerId = peer.getId();
+        int newPort = 0;
+        if (newIdentity != null) {
+            System.out.println("[debug] newIdentity text received: " + newIdentity);
+            newPort = StringUtils.parsePortNumFromHostText(newIdentity);
+            System.out.println("[debug]update peer to new port:" + newPort);
+        }
+
+        // newIdentity is private address,
+        // so we use combination: peer original connection's hostString + newport
+        String newPeerId = StringUtils.parseHostnameFromHostText(originalPeerId)
+                + ":" + newPort;
+
+        System.out.println("[debug]new peer port: " + newPeerId);
+
+        // judge whether the peer is the local peer or not
+        if (chatServer != null) {
+
+            // get this server's local listening address
+            String localAddress = chatServer.getLocalListeningHostText();
+
+            if (newIdentity != null && newIdentity.equals(localAddress)) {
+                System.out.println("[debug] connect to myself");
+                peer.setSelfPeer(true);
+            }
+        }
+
+        // update hashmap and so on
+        synchronized (livingPeers) {
+
+            Peer peerObj = livingPeers.get(originalPeerId);
+            if (!livingPeers.containsKey(newPeerId)) {
+                livingPeers.put(newPeerId, peerObj);
+                livingPeers.remove(originalPeerId);
+                // not temp id, then can be searched out
+                peer.setTempId(false);
+            } else {
+                System.out.println("[debug] update peer indentity failed");
+            }
+        }
     }
 
     /**
@@ -48,13 +108,22 @@ public class NeighborPeerManager {
         try {
 
             // get socketChannel host info for peer id
+
+            /* !! ALERT : this is just a temp id! will be changed soon !!*/
             InetSocketAddress remoteAddress = (InetSocketAddress) newSocketChannel.getRemoteAddress();
-            String hostText = remoteAddress.getHostString() + ":" + remoteAddress.getPort();
+
+            // public host address + connection port, NOT listening port
+//            String hostText = remoteAddress.getHostString() + ":" + remoteAddress.getPort();
+            String hostText = StringUtils.getHostTextFromInetSocketAddress(remoteAddress);
+
+            System.out.println("[debug] new Peer id: " + hostText);
 
             Peer peerInstance = Peer.builder()
                     .id(hostText)
+                    .originalConnectionHostText(hostText)
                     .formerRoomId("")
                     .roomId("")
+                    .isTempId(true)
                     .hostName(remoteAddress.getHostString())
                     .hostPort(Constants.NON_PORT_DESIGNATED)
                     .build();
@@ -66,8 +135,9 @@ public class NeighborPeerManager {
 
             peerInstance.setPeerConnection(connection);
 
-            // check blacklist
-            if (isHostNameInBlackList(remoteAddress.getHostString())) {
+            // check blacklist: blacklist contains host + port
+            // compare original connect host
+            if (isHostNameInBlackList(hostText)) {
                 // TODO handle connect fail message
 
                 // close connection
@@ -216,6 +286,8 @@ public class NeighborPeerManager {
 
     /**
      * get all Neighbor peers
+     * <p>
+     * Not including temp id one
      *
      * @return peers arraylist
      */
@@ -223,7 +295,13 @@ public class NeighborPeerManager {
         ArrayList<Peer> res = new ArrayList<>();
         synchronized (neighborPeerMap) {
             Collection<Peer> values = neighborPeerMap.values();
-            res.addAll(values);
+            for (Peer peer : values) {
+
+                // not including temp id one
+                if (!peer.isTempId()) {
+                    res.add(peer);
+                }
+            }
         }
 
         return res;
@@ -243,14 +321,15 @@ public class NeighborPeerManager {
         }
 
         try {
-            remoteAddress = (InetSocketAddress) kickedPeer.getPeerConnection().getSocketChannel().getRemoteAddress();
-            String hostString = remoteAddress.getHostString();
 
-            synchronized (peerHostNameBlackList) {
-                if (hostString != null) {
-                    peerHostNameBlackList.add(hostString);
-                }
+            // add real connection address text in the blacklist
+            remoteAddress = (InetSocketAddress) kickedPeer.getPeerConnection().getSocketChannel().getRemoteAddress();
+            String hostText = StringUtils.getHostTextFromInetSocketAddress(remoteAddress);
+
+            synchronized (peerConnectionTextBlackList) {
+                peerConnectionTextBlackList.add(hostText);
             }
+
         } catch (IOException e) {
             System.out.println("err in addPeerHostNameToBlackList");
             e.printStackTrace();
@@ -264,9 +343,9 @@ public class NeighborPeerManager {
      * @return true if in the blacklist
      */
     public boolean isHostNameInBlackList(String hostString) {
-        synchronized (peerHostNameBlackList) {
+        synchronized (peerConnectionTextBlackList) {
             if (hostString != null) {
-                return peerHostNameBlackList.contains(hostString);
+                return peerConnectionTextBlackList.contains(hostString);
             }
         }
 

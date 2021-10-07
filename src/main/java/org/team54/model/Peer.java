@@ -17,6 +17,7 @@ public class Peer {
 
     /** id string: 192.168.1.10:3000 */
     private String id;
+    private String originalConnectionHostText = "";
 
     /** use volatile to ensure threads get updated roomId */
     private volatile String formerRoomId = "";
@@ -30,4 +31,7 @@ public class Peer {
 
     /** whether this peer is the peer himself, or is a remote peer */
     private boolean isSelfPeer;
+
+    /** at first connection, the id's port is not accept port, need to be altered in hostchange packet */
+    private volatile boolean isTempId = true;
 }

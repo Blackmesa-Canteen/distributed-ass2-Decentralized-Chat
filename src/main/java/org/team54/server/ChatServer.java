@@ -29,6 +29,8 @@ public class ChatServer implements Runnable {
     private final InetAddress hostAddress;
     private final int port;
 
+    private InetSocketAddress localSocketAddress;
+
     private boolean isRunning = false;
 
     /**
@@ -61,6 +63,8 @@ public class ChatServer implements Runnable {
         this.selector = this.initSelector();
         this.MQWorker = MQWorker;
         this.neighborPeerManager = NeighborPeerManager.getInstance();
+        // attach server to this manager
+        this.neighborPeerManager.setChatServer(this);
     }
 
     /**
@@ -250,6 +254,7 @@ public class ChatServer implements Runnable {
 
         // Bind the server socket to the specified address and port
         InetSocketAddress isa = new InetSocketAddress(this.hostAddress, this.port);
+        localSocketAddress = isa;
         serverChannel.socket().bind(isa);
 
         // Register the server socket channel, indicating an interest in
@@ -259,8 +264,22 @@ public class ChatServer implements Runnable {
         return socketSelector;
     }
 
-    public InetAddress getHostAddress() {
-        return hostAddress;
+    public InetSocketAddress getLocalSocketAddress() {
+        return localSocketAddress;
+    }
+
+    /**
+     * get string of local listening host text: local hoststring + listening port
+     * <p>
+     * can be used for generate 'hostchange' message after connection
+     *
+     * @return String local listening host text
+     */
+    public String getLocalListeningHostText() {
+        InetSocketAddress localSocketAddress = getLocalSocketAddress();
+
+        return localSocketAddress.getHostString()
+                + ":" + localSocketAddress.getPort();
     }
 
     public int getPort() {

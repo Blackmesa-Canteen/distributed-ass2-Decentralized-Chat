@@ -23,7 +23,7 @@ public class ChatRoomManager {
      */
     private final ConcurrentHashMap<String, Room> liveRoomMap;
 
-    private NeighborPeerManager neighborPeerManager;
+    private final NeighborPeerManager neighborPeerManager;
 
     public static synchronized ChatRoomManager getInstance() {
         if (instance == null) {
@@ -306,6 +306,8 @@ public class ChatRoomManager {
                 ArrayList<Peer> peers = room.getPeers();
                 // unload this room's peer's reference with a new empty arraylist
                 room.setPeers(new ArrayList<>());
+
+                System.out.println("[debug] deleteRoom original peers size: " + peers.size());
 
                 for (Peer peer : peers) {
                     if (peer.getRoomId().equals(roomId)) {
