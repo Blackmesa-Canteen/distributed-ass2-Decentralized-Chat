@@ -6,7 +6,6 @@ import org.team54.utils.StringUtils;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -24,6 +23,8 @@ public class ChatRoomManager {
      */
     private final ConcurrentHashMap<String, Room> liveRoomMap;
 
+    private NeighborPeerManager neighborPeerManager;
+
     public static synchronized ChatRoomManager getInstance() {
         if (instance == null) {
             instance = new ChatRoomManager();
@@ -34,6 +35,7 @@ public class ChatRoomManager {
 
     private ChatRoomManager() {
         this.liveRoomMap = new ConcurrentHashMap<>();
+        this.neighborPeerManager = NeighborPeerManager.getInstance();
     }
 
     /**
@@ -121,7 +123,7 @@ public class ChatRoomManager {
      * currently in the requesting client’s current room and the requesting client’s requested room.
      *
      * @param roomId targetRoom ID
-     * @param peer peer requesting
+     * @param peer   peer requesting
      */
     public void joinPeerToRoom(String roomId, Peer peer) {
         Room targetRoom = null;
@@ -129,45 +131,186 @@ public class ChatRoomManager {
 
         boolean isSuccessful = false;
 
-        // lock to prevent join a deleted null room
-        synchronized (liveRoomMap) {
-            targetRoom = liveRoomMap.get(roomId);
-            if (targetRoom != null) {
-                // if target Room exists
-                // check peer existence
-                if (!targetRoom.getPeers().contains(peer)) {
-                    // if peer not joined the room
+        // handle "" empty room, just remove the peer from current room
+        if ("".equals(roomId)) {
+            synchronized (liveRoomMap) {
+                previousRoomId = peer.getRoomId();
 
-                    // get prev roomId of peer
-                    previousRoomId = peer.getRoomId();
+                Room room = liveRoomMap.get(previousRoomId);
+                if (room != null) {
 
-                    // add peer to new room
-                    targetRoom.getPeers().add(peer);
+                    // TODO notify client leave the room
 
-                    // TODO notify new room
+                    if (room.getPeers().remove(peer)) {
+                        isSuccessful = true;
 
-                    // kick peer from prev room
-                    if (previousRoomId != null) {
-                        Room prevRoom = liveRoomMap.get(previousRoomId);
-
-                        // TODO notify old room
-
-                        prevRoom.getPeers().remove(peer);
+                        // update current peer info
+                        peer.setFormerRoomId(previousRoomId);
+                        peer.setRoomId("");
                     }
+                }
+            }
 
-                    // TODO other room info
+        } else {
+            // if target room is not ""
+            // lock to prevent join a deleted null room
+            synchronized (liveRoomMap) {
+                targetRoom = liveRoomMap.get(roomId);
+                if (targetRoom != null) {
+                    // if target Room exists
+                    // check peer existence
+                    if (!targetRoom.getPeers().contains(peer)) {
+                        // if peer not joined the room
 
-                    // update current peer info
-                    peer.setFormerRoomId(previousRoomId);
-                    peer.setRoomId(targetRoom.getRoomId());
+                        // get prev roomId of peer
+                        previousRoomId = peer.getRoomId();
 
-                    isSuccessful = true;
+                        // add peer to new room
+                        targetRoom.getPeers().add(peer);
+
+                        // TODO notify new room
+
+                        // rm peer from prev room
+                        if (previousRoomId != null) {
+                            if (!"".equals(previousRoomId)) {
+                                Room prevRoom = liveRoomMap.get(previousRoomId);
+
+                                // TODO notify old room
+
+                                prevRoom.getPeers().remove(peer);
+                            }
+                        }
+
+                        // TODO other room info
+
+                        // update current peer info
+                        peer.setFormerRoomId(previousRoomId);
+                        peer.setRoomId(targetRoom.getRoomId());
+
+                        isSuccessful = true;
+                    }
                 }
             }
         }
 
+
         if (!isSuccessful) {
-            // TODO send failed info
+            // TODO send failed info to the peer
+        }
+    }
+
+    /**
+     * boradcast text message within a room
+     *
+     * @param roomId       string room id
+     * @param message      text message
+     * @param peerExcluded Peer that is excluded
+     */
+    public void broadcastMessageInRoom(String roomId, String message, Peer peerExcluded) {
+        // TODO 线程不安全!
+        // lock until done message sending
+        synchronized (liveRoomMap) {
+            Room room = liveRoomMap.get(roomId);
+
+            if (room != null) {
+                ArrayList<Peer> peers = room.getPeers();
+                for (Peer peer : peers) {
+                    if (peerExcluded == null || !peerExcluded.equals(peer)) {
+                        peer.getPeerConnection().sendTextMsgToMe(message);
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * remove a peer in a room **politely**
+     *
+     * !! THIS IS NOT KICK !!
+     *
+     * @param roomId     string roomid
+     * @param targetPeer Peer need to be removed
+     */
+    public void removePeerFromRoomId(String roomId, Peer targetPeer) {
+
+        // if the roomId is "", don't do anything
+        if ("".equals(roomId)) {
+            return;
+        }
+
+        // not atomic, so lock
+        synchronized (liveRoomMap) {
+            Room room = liveRoomMap.get(roomId);
+            room.getPeers().remove(targetPeer);
+
+            // update peer info
+            targetPeer.setRoomId("");
+            targetPeer.setFormerRoomId(roomId);
+        }
+
+        // TODO handle remove user message, broadcast or something
+    }
+
+    /**
+     * !! THIS IS KICK, WILL ALSO BAN THE USER !!
+     *
+     * kick and ban a peer, call by the owner
+     *
+     * @param peerId Peer ID
+     */
+    public void kickPeerByPeerId(String peerId) {
+        Peer kickedPeer = neighborPeerManager.getPeerByPeerId(peerId);
+        if (kickedPeer != null) {
+
+            String roomId = kickedPeer.getRoomId();
+            if (roomId != null) {
+                // remove from the room
+                removePeerFromRoomId(roomId, kickedPeer);
+
+                // add black list
+                neighborPeerManager.addPeerHostNameToBlackList(kickedPeer);
+
+                // disconnect this peer
+                neighborPeerManager.handleDisconnectNeighborPeer(kickedPeer);
+            }
+        }
+    }
+
+    /**
+     * remove a room by Id
+     * <p>
+     * owner of a room can at any time issue a Delete command.
+     * <p>
+     * Similarly to the create room and kick user, this command does not
+     * generate messages and the logic is simply executed locally.
+     * <p>
+     * The peer will first treat this as if all users of the room had sent a
+     * RoomChange message to the empty room "". Then the peer will delete the room.
+     * <p>
+     * The peer can print whether the room was successfully deleted or not.
+     *
+     * @param roomId String room Id
+     */
+    public void deleteRoomById(String roomId) {
+
+        synchronized (liveRoomMap) {
+            Room room = liveRoomMap.get(roomId);
+            if (room != null) {
+
+                // get all peers reference
+                ArrayList<Peer> peers = room.getPeers();
+                // unload this room's peer's reference
+                room.setPeers(null);
+
+                for (Peer peer : peers) {
+                    removePeerFromRoomId(roomId, peer);
+                }
+
+                // remove the room from map
+                liveRoomMap.remove(roomId);
+            } else {
+                System.out.println("Room delete failed: No such room.");
+            }
         }
     }
 }

@@ -3,14 +3,14 @@ package org.team54.server;
 import org.team54.model.Peer;
 import org.team54.model.PeerConnection;
 import org.team54.utils.Constants;
+import org.team54.utils.StringUtils;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.net.Socket;
+import java.net.SocketAddress;
 import java.nio.channels.SocketChannel;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -24,6 +24,8 @@ public class NeighborPeerManager {
     private static NeighborPeerManager instance;
 
     private final ConcurrentHashMap<SocketChannel, Peer> neighborPeerMap;
+    private final HashSet<String> peerHostNameBlackList;
+    private final ChatRoomManager chatRoomManager;
 
     public static synchronized NeighborPeerManager getInstance() {
         if (instance == null) {
@@ -35,6 +37,8 @@ public class NeighborPeerManager {
 
     private NeighborPeerManager() {
         neighborPeerMap = new ConcurrentHashMap<>();
+        peerHostNameBlackList = new HashSet<>();
+        chatRoomManager = ChatRoomManager.getInstance();
     }
 
     /**
@@ -51,8 +55,8 @@ public class NeighborPeerManager {
 
             Peer peerInstance = Peer.builder()
                     .id(hostText)
-                    .formerRoomId(null)
-                    .roomId(null)
+                    .formerRoomId("")
+                    .roomId("")
                     .hostName(remoteAddress.getHostString())
                     .hostPort(Constants.NON_PORT_DESIGNATED)
                     .build();
@@ -63,6 +67,19 @@ public class NeighborPeerManager {
                     .build();
 
             peerInstance.setPeerConnection(connection);
+
+            // check blacklist
+            if (isHostNameInBlackList(hostText)) {
+                // TODO handle connect fail message
+
+                // close connection
+                newSocketChannel.close();
+                connection = null;
+                peerInstance = null;
+                return;
+            }
+
+            // TODO check whether the peer is local peer himself: can be handled in parsing hostchange message!
 
             // put the new peer in hashmap
             // put、remove and clear need to get a lock
@@ -87,6 +104,31 @@ public class NeighborPeerManager {
     }
 
     /**
+     * find peer by peer id
+     *
+     * low performance.
+     *
+     * @param id stirng peer id
+     * @return peer, null if not found
+     */
+    public Peer getPeerByPeerId(String id) {
+
+        if (id != null && id.length() > 0) {
+
+            synchronized (neighborPeerMap) {
+                ArrayList<Peer> peers = new ArrayList<>(neighborPeerMap.values());
+                for (Peer peer : peers) {
+                    if (peer.getId().equals(id)) {
+                        return peer;
+                    }
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * handle neighbor disconnect
      *
      * @param peer
@@ -100,7 +142,10 @@ public class NeighborPeerManager {
             neighborPeerMap.remove(socketChannel);
         }
 
-        // TODO: leave local room and broadcast leaving msg in local room, if peer has
+
+        if (!"".equals(peer.getRoomId())) {
+            chatRoomManager.removePeerFromRoomId(peer.getRoomId(), peer);
+        }
 
         // try to close this peer connection
         peer.getPeerConnection().closeMe();
@@ -146,5 +191,49 @@ public class NeighborPeerManager {
         }
 
         return res;
+    }
+
+    /**
+     * put a peer's hostname in the black list
+     *
+     * @param kickedPeer peer that is kicked
+     */
+    public void addPeerHostNameToBlackList(Peer kickedPeer) {
+        InetSocketAddress remoteAddress = null;
+
+        // can't kick himself
+        if (kickedPeer.isSelfPeer()) {
+            return;
+        }
+
+        try {
+            remoteAddress = (InetSocketAddress) kickedPeer.getPeerConnection().getSocketChannel().getRemoteAddress();
+            String hostString = remoteAddress.getHostString();
+
+            synchronized (peerHostNameBlackList) {
+                if (hostString != null) {
+                    peerHostNameBlackList.add(hostString);
+                }
+            }
+        } catch (IOException e) {
+            System.out.println("err in addPeerHostNameToBlackList");
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * check whether a hostname is in blacklist or not
+     *
+     * @param hostname string
+     * @return true if in the blacklist
+     */
+    public boolean isHostNameInBlackList(String hostname) {
+        synchronized (peerHostNameBlackList) {
+            if (hostname != null) {
+                return peerHostNameBlackList.contains(hostname);
+            }
+        }
+
+        return false;
     }
 }

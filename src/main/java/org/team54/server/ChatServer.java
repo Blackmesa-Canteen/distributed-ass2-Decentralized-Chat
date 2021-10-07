@@ -251,4 +251,12 @@ public class ChatServer implements Runnable {
 
         return socketSelector;
     }
+
+    public InetAddress getHostAddress() {
+        return hostAddress;
+    }
+
+    public int getPort() {
+        return port;
+    }
 }
