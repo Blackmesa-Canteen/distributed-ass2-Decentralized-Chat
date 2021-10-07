@@ -29,7 +29,7 @@ public class StringUtils {
      * @param hostText str like "192.168.1.9:5000"
      * @return string hostname
      */
-    public static String parseHostnameFromHostText(String hostText) {
+    public static String parseHostStringFromHostText(String hostText) {
         int i = 0;
         int size = hostText.length();
         String res = null;
@@ -89,7 +89,7 @@ public class StringUtils {
      */
     public static void main(String[] args) {
         String test = "202.96.140.77:2345";
-        String res = parseHostnameFromHostText(test);
+        String res = parseHostStringFromHostText(test);
         System.out.println(res);
         System.out.println(parsePortNumFromHostText(test));
     }

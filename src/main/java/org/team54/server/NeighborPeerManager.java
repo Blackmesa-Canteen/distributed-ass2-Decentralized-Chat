@@ -59,17 +59,18 @@ public class NeighborPeerManager {
 
         String originalPeerId = peer.getId();
         int newPort = 0;
+        String newHostString = "";
         if (newIdentity != null) {
             System.out.println("[debug] newIdentity text received: " + newIdentity);
             newPort = StringUtils.parsePortNumFromHostText(newIdentity);
+            newHostString = StringUtils.parseHostStringFromHostText(newIdentity);
             System.out.println("[debug]update peer to new port:" + newPort);
         }
 
         // newIdentity is private address,
         // so we use combination: peer original connection's hostString + newport
-        String newPeerId = StringUtils.parseHostnameFromHostText(originalPeerId)
+        String newPeerId = StringUtils.parseHostStringFromHostText(originalPeerId)
                 + ":" + newPort;
-
         System.out.println("[debug]new peer port: " + newPeerId);
 
         // judge whether the peer is the local peer or not
@@ -92,9 +93,13 @@ public class NeighborPeerManager {
                 livingPeers.put(newPeerId, peerObj);
                 livingPeers.remove(originalPeerId);
                 // not temp id, then can be searched out
+                peer.setId(newPeerId);
+                peer.setHostPort(newPort);
+                peer.setHostName(newHostString);
+
                 peer.setTempId(false);
             } else {
-                System.out.println("[debug] update peer indentity failed");
+                System.out.println("[debug] update peer indentity failed, already connected");
             }
         }
     }
@@ -116,7 +121,7 @@ public class NeighborPeerManager {
 //            String hostText = remoteAddress.getHostString() + ":" + remoteAddress.getPort();
             String hostText = StringUtils.getHostTextFromInetSocketAddress(remoteAddress);
 
-            System.out.println("[debug] new Peer id: " + hostText);
+            System.out.println("[debug] new Peer temp id: " + hostText);
 
             Peer peerInstance = Peer.builder()
                     .id(hostText)
@@ -147,16 +152,25 @@ public class NeighborPeerManager {
                 return;
             }
 
-            // TODO check whether the peer is local peer himself: can be handled in parsing hostchange message!
-
-            synchronized (livingPeers) {
-                livingPeers.put(peerInstance.getId(), peerInstance);
-            }
-
             // put the new peer in hashmap
             // put、remove and clear need to get a lock
+            boolean isAlreadyExist = false;
             synchronized (neighborPeerMap) {
-                neighborPeerMap.put(newSocketChannel, peerInstance);
+                if (neighborPeerMap.containsKey(newSocketChannel)) {
+                    isAlreadyExist = true;
+                    System.out.println("[debug]please don't connect for twice.");
+                } else {
+                    neighborPeerMap.put(newSocketChannel, peerInstance);
+                    System.out.println("[debug]put new peer in neighbor");
+                }
+            }
+
+            // if already exist, won't put again
+            if (!isAlreadyExist) {
+                synchronized (livingPeers) {
+                    livingPeers.putIfAbsent(peerInstance.getId(), peerInstance);
+                    System.out.println("[debug]put new connection in server living peers.");
+                }
             }
         } catch (IOException e) {
             System.out.println("err in registerNewSocketChannelAsNeighbor");

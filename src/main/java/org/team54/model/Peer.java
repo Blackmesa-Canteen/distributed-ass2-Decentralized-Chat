@@ -16,7 +16,7 @@ import lombok.*;
 public class Peer {
 
     /** id string: 192.168.1.10:3000 */
-    private String id;
+    private volatile String id;
     private String originalConnectionHostText = "";
 
     /** use volatile to ensure threads get updated roomId */
@@ -30,7 +30,7 @@ public class Peer {
     private int hostPort;
 
     /** whether this peer is the peer himself, or is a remote peer */
-    private boolean isSelfPeer;
+    private volatile boolean isSelfPeer;
 
     /** at first connection, the id's port is not accept port, need to be altered in hostchange packet */
     private volatile boolean isTempId = true;
