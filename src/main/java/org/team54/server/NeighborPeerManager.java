@@ -25,6 +25,7 @@ public class NeighborPeerManager {
 
     private final ConcurrentHashMap<SocketChannel, Peer> neighborPeerMap;
     private final HashSet<String> peerHostNameBlackList;
+    private final ConcurrentHashMap<String, Peer> livingPeers;
     private final ChatRoomManager chatRoomManager;
 
     public static synchronized NeighborPeerManager getInstance() {
@@ -39,6 +40,7 @@ public class NeighborPeerManager {
         neighborPeerMap = new ConcurrentHashMap<>();
         peerHostNameBlackList = new HashSet<>();
         chatRoomManager = ChatRoomManager.getInstance();
+        livingPeers = new ConcurrentHashMap<>();
     }
 
     /**
@@ -69,7 +71,7 @@ public class NeighborPeerManager {
             peerInstance.setPeerConnection(connection);
 
             // check blacklist
-            if (isHostNameInBlackList(hostText)) {
+            if (isHostNameInBlackList(remoteAddress.getHostString())) {
                 // TODO handle connect fail message
 
                 // close connection
@@ -80,6 +82,10 @@ public class NeighborPeerManager {
             }
 
             // TODO check whether the peer is local peer himself: can be handled in parsing hostchange message!
+
+            synchronized (livingPeers) {
+                livingPeers.put(peerInstance.getId(), peerInstance);
+            }
 
             // put the new peer in hashmap
             // put、remove and clear need to get a lock
@@ -104,9 +110,22 @@ public class NeighborPeerManager {
     }
 
     /**
-     * find peer by peer id
+     * check whether the peer is living or not
      *
-     * low performance.
+     * @param peerId string peer id
+     */
+    public boolean isPeerLivingByPeerId(String peerId) {
+        if (peerId != null) {
+            synchronized (livingPeers) {
+                return livingPeers.containsKey(peerId);
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * find peer by peer id
      *
      * @param id stirng peer id
      * @return peer, null if not found
@@ -115,14 +134,18 @@ public class NeighborPeerManager {
 
         if (id != null && id.length() > 0) {
 
-            synchronized (neighborPeerMap) {
-                ArrayList<Peer> peers = new ArrayList<>(neighborPeerMap.values());
-                for (Peer peer : peers) {
-                    if (peer.getId().equals(id)) {
-                        return peer;
-                    }
-                }
+            synchronized (livingPeers) {
+                return livingPeers.get(id);
             }
+
+//            synchronized (neighborPeerMap) {
+//                ArrayList<Peer> peers = new ArrayList<>(neighborPeerMap.values());
+//                for (Peer peer : peers) {
+//                    if (peer.getId().equals(id)) {
+//                        return peer;
+//                    }
+//                }
+//            }
         }
 
         return null;
@@ -137,11 +160,15 @@ public class NeighborPeerManager {
 
         SocketChannel socketChannel = peer.getPeerConnection().getSocketChannel();
 
+        // remove living peer record
+        synchronized (livingPeers) {
+            livingPeers.remove(peer.getId());
+        }
+
         // remove the peer from neighbor peer map
         synchronized (neighborPeerMap) {
             neighborPeerMap.remove(socketChannel);
         }
-
 
         if (!"".equals(peer.getRoomId())) {
             chatRoomManager.removePeerFromRoomId(peer.getRoomId(), peer);
@@ -163,7 +190,13 @@ public class NeighborPeerManager {
 
             // remove the peer from neighbor peer map
             synchronized (neighborPeerMap) {
+
+                Peer peer = neighborPeerMap.get(socketChannel);
                 neighborPeerMap.remove(socketChannel);
+
+                synchronized (livingPeers) {
+                    livingPeers.remove(peer.getId());
+                }
             }
 
             // TODO: leave local room and broadcast leaving msg in local room, if peer has
@@ -224,13 +257,13 @@ public class NeighborPeerManager {
     /**
      * check whether a hostname is in blacklist or not
      *
-     * @param hostname string
+     * @param hostString string
      * @return true if in the blacklist
      */
-    public boolean isHostNameInBlackList(String hostname) {
+    public boolean isHostNameInBlackList(String hostString) {
         synchronized (peerHostNameBlackList) {
-            if (hostname != null) {
-                return peerHostNameBlackList.contains(hostname);
+            if (hostString != null) {
+                return peerHostNameBlackList.contains(hostString);
             }
         }
 

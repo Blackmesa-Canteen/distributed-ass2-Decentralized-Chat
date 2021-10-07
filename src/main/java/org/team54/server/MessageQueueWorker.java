@@ -3,7 +3,6 @@ package org.team54.server;
 import org.team54.model.Peer;
 import org.team54.model.ServerIncomingTextMessage;
 
-import java.nio.channels.SocketChannel;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
@@ -43,7 +42,7 @@ public class MessageQueueWorker implements Runnable {
             }
 
             // handle incoming text request
-            incomingMessage.getChatServer().handleRequest(incomingMessage.getSourcePeer(), incomingMessage.getText());
+            incomingMessage.getChatServer().handleRequestCallback(incomingMessage.getSourcePeer(), incomingMessage.getText());
         }
     }
 }

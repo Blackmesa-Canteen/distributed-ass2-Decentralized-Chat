@@ -17,8 +17,10 @@ public class Peer {
 
     /** id string: 192.168.1.10:3000 */
     private String id;
-    private String formerRoomId = "";
-    private String roomId = "";
+
+    /** use volatile to ensure threads get updated roomId */
+    private volatile String formerRoomId = "";
+    private volatile String roomId = "";
 
     private PeerConnection peerConnection;
 

@@ -202,17 +202,19 @@ public class ChatRoomManager {
     /**
      * boradcast text message within a room
      *
+     * @param srcPeer      peer that want to broadcast
      * @param roomId       string room id
      * @param message      text message
      * @param peerExcluded Peer that is excluded
      */
-    public void broadcastMessageInRoom(String roomId, String message, Peer peerExcluded) {
-        // TODO 线程不安全!
+    public void broadcastMessageInRoom(Peer srcPeer, String roomId, String message, Peer peerExcluded) {
+
         // lock until done message sending
         synchronized (liveRoomMap) {
             Room room = liveRoomMap.get(roomId);
 
-            if (room != null) {
+            // make sure room is not null, and the peer is in this room
+            if (room != null && srcPeer.getRoomId().equals(roomId)) {
                 ArrayList<Peer> peers = room.getPeers();
                 for (Peer peer : peers) {
                     if (peerExcluded == null || !peerExcluded.equals(peer)) {

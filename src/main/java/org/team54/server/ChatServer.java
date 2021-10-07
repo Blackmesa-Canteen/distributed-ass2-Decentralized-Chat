@@ -158,16 +158,23 @@ public class ChatServer implements Runnable {
     }
 
     /**
+     * Callback that handle text requests
+     * <p>
      * parse incoming text request, and react to it
+     *
      * @param sourcePeer
      * @param text
      */
-    public void handleRequest(Peer sourcePeer, String text) {
+    public void handleRequestCallback(Peer sourcePeer, String text) {
+        // check peer livness, only handle living peer's request
+        if (neighborPeerManager.isPeerLivingByPeerId(sourcePeer.getId())) {
 
+        }
     }
 
     /**
      * register the socketChannel to a selector
+     *
      * @param selector
      * @param channel
      * @param opRead
