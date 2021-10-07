@@ -3,12 +3,8 @@ package org.team54.server;
 import org.team54.model.Peer;
 import org.team54.model.PeerConnection;
 import org.team54.utils.Constants;
-import org.team54.utils.StringUtils;
-
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.net.Socket;
-import java.net.SocketAddress;
 import java.nio.channels.SocketChannel;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -189,12 +185,14 @@ public class NeighborPeerManager {
         if (socketChannel != null) {
 
             // remove the peer from neighbor peer map
+            Peer peer = null;
             synchronized (neighborPeerMap) {
-
-                Peer peer = neighborPeerMap.get(socketChannel);
+                peer = neighborPeerMap.get(socketChannel);
                 neighborPeerMap.remove(socketChannel);
+            }
 
-                synchronized (livingPeers) {
+            synchronized (livingPeers) {
+                if (peer != null) {
                     livingPeers.remove(peer.getId());
                 }
             }

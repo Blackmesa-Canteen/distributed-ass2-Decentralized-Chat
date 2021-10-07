@@ -248,9 +248,10 @@ public class ChatRoomManager {
             // update peer info
             targetPeer.setRoomId("");
             targetPeer.setFormerRoomId(roomId);
-        }
 
-        // TODO handle remove user message, broadcast or something
+            // TODO handle remove user message, broadcast or something
+
+        }
     }
 
     /**
@@ -301,11 +302,15 @@ public class ChatRoomManager {
 
                 // get all peers reference
                 ArrayList<Peer> peers = room.getPeers();
-                // unload this room's peer's reference
-                room.setPeers(null);
+                // unload this room's peer's reference with a new empty arraylist
+                room.setPeers(new ArrayList<>());
 
                 for (Peer peer : peers) {
-                    removePeerFromRoomId(roomId, peer);
+
+                    peer.setRoomId("");
+                    peer.setFormerRoomId(roomId);
+
+                    // TODO send message to this peer that he is quit
                 }
 
                 // remove the room from map
