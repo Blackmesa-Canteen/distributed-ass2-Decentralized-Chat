@@ -166,6 +166,7 @@ public class NeighborPeerManager {
             neighborPeerMap.remove(socketChannel);
         }
 
+        // if the peer has joined a room, exit
         if (!"".equals(peer.getRoomId())) {
             chatRoomManager.removePeerFromRoomId(peer.getRoomId(), peer);
         }
@@ -197,7 +198,11 @@ public class NeighborPeerManager {
                 }
             }
 
-            // TODO: leave local room and broadcast leaving msg in local room, if peer has
+            // if the peer has joined a room, exit
+            if (peer != null && !"".equals(peer.getRoomId())) {
+                chatRoomManager.removePeerFromRoomId(peer.getRoomId(), peer);
+                // TODO: leave local room and broadcast leaving msg in local room, if peer has
+            }
 
             // try to close this peer connection
             try {

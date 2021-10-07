@@ -242,15 +242,17 @@ public class ChatRoomManager {
 
         // not atomic, so lock
         synchronized (liveRoomMap) {
-            Room room = liveRoomMap.get(roomId);
-            room.getPeers().remove(targetPeer);
+            // if user current in this room
+            if (targetPeer.getRoomId().equals(roomId)) {
+                Room room = liveRoomMap.get(roomId);
+                room.getPeers().remove(targetPeer);
 
-            // update peer info
-            targetPeer.setRoomId("");
-            targetPeer.setFormerRoomId(roomId);
+                // update peer info
+                targetPeer.setRoomId("");
+                targetPeer.setFormerRoomId(roomId);
 
-            // TODO handle remove user message, broadcast or something
-
+                // TODO handle remove user message, broadcast or something
+            }
         }
     }
 
@@ -306,11 +308,12 @@ public class ChatRoomManager {
                 room.setPeers(new ArrayList<>());
 
                 for (Peer peer : peers) {
+                    if (peer.getRoomId().equals(roomId)) {
 
-                    peer.setRoomId("");
-                    peer.setFormerRoomId(roomId);
-
-                    // TODO send message to this peer that he is quit
+                        peer.setRoomId("");
+                        peer.setFormerRoomId(roomId);
+                        // TODO send message to this peer that he is quit
+                    }
                 }
 
                 // remove the room from map
