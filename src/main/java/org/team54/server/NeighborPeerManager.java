@@ -2,6 +2,7 @@ package org.team54.server;
 
 import org.team54.model.Peer;
 import org.team54.model.PeerConnection;
+import org.team54.service.RoomMessageService;
 import org.team54.utils.Constants;
 import org.team54.utils.StringUtils;
 
@@ -143,8 +144,7 @@ public class NeighborPeerManager {
             // check blacklist: blacklist contains host + port
             // compare original connect host
             if (isHostNameInBlackList(hostText)) {
-                // TODO handle connect fail message
-
+                System.out.println("Rejected kicked connection from: " + hostText);
                 // close connection
                 newSocketChannel.close();
                 connection = null;
@@ -154,24 +154,22 @@ public class NeighborPeerManager {
 
             // put the new peer in hashmap
             // put、remove and clear need to get a lock
-            boolean isAlreadyExist = false;
             synchronized (neighborPeerMap) {
                 if (neighborPeerMap.containsKey(newSocketChannel)) {
-                    isAlreadyExist = true;
                     System.out.println("[debug]please don't connect for twice.");
+                    return;
                 } else {
                     neighborPeerMap.put(newSocketChannel, peerInstance);
-                    System.out.println("[debug]put new peer in neighbor");
                 }
             }
 
-            // if already exist, won't put again
-            if (!isAlreadyExist) {
-                synchronized (livingPeers) {
-                    livingPeers.putIfAbsent(peerInstance.getId(), peerInstance);
-                    System.out.println("[debug]put new connection in server living peers.");
-                }
+            synchronized (livingPeers) {
+                livingPeers.putIfAbsent(peerInstance.getId(), peerInstance);
             }
+
+            System.out.println("[debug]put new peer in neighbor");
+            System.out.println("[debug]put new connection " + peerInstance.toString() + " in server living peers.");
+
         } catch (IOException e) {
             System.out.println("err in registerNewSocketChannelAsNeighbor");
             e.printStackTrace();
@@ -245,14 +243,25 @@ public class NeighborPeerManager {
             livingPeers.remove(peer.getId());
         }
 
-        // remove the peer from neighbor peer map
-        synchronized (neighborPeerMap) {
-            neighborPeerMap.remove(socketChannel);
-        }
-
         // if the peer has joined a room, exit
         if (!"".equals(peer.getRoomId())) {
             chatRoomManager.removePeerFromRoomId(peer.getRoomId(), peer);
+        } else {
+            // if no room joined, send empty room change response to this peer only.
+            // to make sure "When the client that is disconnecting receives
+            // the RoomChange message, then it can close the connection."
+            String roomChangeResponseMsg = RoomMessageService.genRoomChangeResponseMsg(
+                    peer.getId(),
+                    "",
+                    ""
+            );
+
+            peer.getPeerConnection().sendTextMsgToMe(roomChangeResponseMsg);
+        }
+
+        // remove the peer from neighbor peer map
+        synchronized (neighborPeerMap) {
+            neighborPeerMap.remove(socketChannel);
         }
 
         // try to close this peer connection
@@ -276,8 +285,8 @@ public class NeighborPeerManager {
                 neighborPeerMap.remove(socketChannel);
             }
 
-            synchronized (livingPeers) {
-                if (peer != null) {
+            if (peer != null) {
+                synchronized (livingPeers) {
                     livingPeers.remove(peer.getId());
                 }
             }
@@ -285,7 +294,6 @@ public class NeighborPeerManager {
             // if the peer has joined a room, exit
             if (peer != null && !"".equals(peer.getRoomId())) {
                 chatRoomManager.removePeerFromRoomId(peer.getRoomId(), peer);
-                // TODO: leave local room and broadcast leaving msg in local room, if peer has
             }
 
             // try to close this peer connection

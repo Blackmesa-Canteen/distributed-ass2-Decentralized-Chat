@@ -1,6 +1,10 @@
 package org.team54.server;
 
+import com.alibaba.fastjson.JSONException;
+import com.alibaba.fastjson.JSONObject;
+import org.team54.messageBean.RoomChangeMessage;
 import org.team54.model.Peer;
+import org.team54.service.RoomMessageService;
 import org.team54.utils.CharsetConvertor;
 import org.team54.utils.Constants;
 
@@ -51,6 +55,7 @@ public class ChatServer implements Runnable {
     private final MessageQueueWorker MQWorker;
 
     private final NeighborPeerManager neighborPeerManager;
+    private final ChatRoomManager chatRoomManager;
 
     public ChatServer(InetAddress hostAddress, int port, MessageQueueWorker MQWorker) throws IOException {
         this.hostAddress = hostAddress;
@@ -65,6 +70,7 @@ public class ChatServer implements Runnable {
         this.neighborPeerManager = NeighborPeerManager.getInstance();
         // attach server to this manager
         this.neighborPeerManager.setChatServer(this);
+        this.chatRoomManager = ChatRoomManager.getInstance();
     }
 
     /**
@@ -129,11 +135,10 @@ public class ChatServer implements Runnable {
 
                 // accept this channel
                 socketChannel = serverSocketChannel.accept();
-
-                // register this channel
                 registerChannel(selector, socketChannel, SelectionKey.OP_READ);
 
                 // register this new connected peer into manager
+                // will also check blacklist
                 neighborPeerManager.registerNewSocketChannelAsNeighbor(socketChannel);
 
             } else if (key.isReadable()) {
@@ -155,6 +160,7 @@ public class ChatServer implements Runnable {
             // close buggy channel
             if (socketChannel != null) {
 //                socketChannel.close();
+                System.out.println("[debug] closed a buggy socket");
                 neighborPeerManager.handleDisconnectNeighborSocketChannel(socketChannel);
             }
         }
@@ -172,6 +178,65 @@ public class ChatServer implements Runnable {
     public void handleRequestCallback(Peer sourcePeer, String text) {
         // check peer livness, only handle living peer's request
         if (neighborPeerManager.isPeerLivingByPeerId(sourcePeer.getId())) {
+            System.out.println("[debug] get request: " + text);
+            JSONObject requestDataObject = JSONObject.parseObject(text);
+            if (requestDataObject == null) {
+                throw new JSONException("JSON object parse ERROR");
+            }
+
+            String requestType = requestDataObject.getString("type");
+            if (requestType != null) {
+
+                if (requestType.equals(Constants.MESSAGE_JSON_TYPE)) {
+                    String content = requestDataObject.getString("content");
+                    if (content == null) {
+                        throw new JSONException("Missing attributes");
+                    }
+
+                    String relayMessage = RoomMessageService.genRelayMessage(sourcePeer.getId(), text);
+                    chatRoomManager.broadcastMessageInRoom(sourcePeer
+                            , sourcePeer.getRoomId()
+                            , relayMessage,
+                            null);
+
+                } else if (requestType.equals(Constants.HOST_CHANGE_JSON_TYPE)) {
+                    // TODO host change
+
+                } else if (requestType.equals(Constants.JOIN_JSON_TYPE)) {
+                    String roomId = requestDataObject.getString("roomid");
+                    if (roomId == null) {
+                        throw new JSONException("Missing attributes");
+                    }
+                    chatRoomManager.joinPeerToRoom(roomId, sourcePeer);
+
+                } else if (requestType.equals(Constants.WHO_JSON_TYPE)) {
+                    String roomId = requestDataObject.getString("roomid");
+                    if (roomId == null) {
+                        throw new JSONException("Missing attributes");
+                    }
+
+                    chatRoomManager.sendRoomContentMsgToPeer(sourcePeer, roomId);
+
+                } else if (requestType.equals(Constants.LIST_JSON_TYPE)) {
+                    chatRoomManager.sendRoomListMsgToPeer(sourcePeer);
+
+                } else if (requestType.equals(Constants.QUIT_JSON_TYPE)) {
+                    neighborPeerManager.handleDisconnectNeighborPeer(sourcePeer);
+
+                } else if (requestType.equals(Constants.LIST_NEIGHBORS_JSON_TYPE)) {
+                    // TODO list neighbors
+
+
+                } else if (requestType.equals(Constants.SHOUT_JSON_TYPE)) {
+                    // TODO shout
+
+                }
+
+
+            } else {
+                throw new JSONException("JSON's type is not exist");
+            }
+
 
         }
     }

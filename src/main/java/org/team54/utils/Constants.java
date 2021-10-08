@@ -25,8 +25,6 @@ public class Constants {
     public static String WHO_JSON_TYPE = "who";
     public static String ROOM_LIST_JSON_TYPE = "roomlist";
     public static String LIST_JSON_TYPE = "list";
-    public static String CREATE_ROOM_JSON_TYPE = "createroom";
-    public static String DELETE_JSON_TYPE = "delete";
     public static String MESSAGE_JSON_TYPE = "message";
     public static String QUIT_JSON_TYPE = "quit";
 }

@@ -2,6 +2,7 @@ package org.team54.server;
 
 import org.team54.model.Peer;
 import org.team54.model.Room;
+import org.team54.service.RoomMessageService;
 import org.team54.utils.StringUtils;
 
 import java.util.ArrayList;
@@ -131,68 +132,70 @@ public class ChatRoomManager {
 
         boolean isSuccessful = false;
 
-        // handle "" empty room, just remove the peer from current room
-        if ("".equals(roomId)) {
-            synchronized (liveRoomMap) {
-                previousRoomId = peer.getRoomId();
+        // make sure the peer's id is updated by hostchange
+        if (!peer.isTempId()) {
+            // handle "" empty room, just remove the peer from current room
+            if ("".equals(roomId)) {
+                synchronized (liveRoomMap) {
+                    previousRoomId = peer.getRoomId();
+                    Room room = liveRoomMap.get(previousRoomId);
 
-                Room room = liveRoomMap.get(previousRoomId);
-                if (room != null) {
+                    if (room != null) {
 
-                    // TODO notify client leave the room
+                        // TODO notify client leave the room
 
-                    if (room.getPeers().remove(peer)) {
-                        isSuccessful = true;
+                        if (room.getPeers().remove(peer)) {
+                            isSuccessful = true;
 
-                        // update current peer info
-                        peer.setFormerRoomId(previousRoomId);
-                        peer.setRoomId("");
+                            // update current peer info
+                            peer.setFormerRoomId(previousRoomId);
+                            peer.setRoomId("");
+                        }
                     }
                 }
-            }
 
-        } else {
-            // if target room is not ""
-            // lock to prevent join a deleted null room
-            synchronized (liveRoomMap) {
-                targetRoom = liveRoomMap.get(roomId);
-                if (targetRoom != null) {
-                    // if target Room exists
-                    // check peer existence
-                    if (!targetRoom.getPeers().contains(peer)) {
-                        // if peer not joined the room
+            } else {
+                // if target room is not ""
+                // lock to prevent join a deleted null room
+                synchronized (liveRoomMap) {
+                    targetRoom = liveRoomMap.get(roomId);
+                    if (targetRoom != null) {
+                        // if target Room exists
+                        // check peer existence
+                        if (!targetRoom.getPeers().contains(peer)) {
+                            // if peer not joined the room
 
-                        // get prev roomId of peer
-                        previousRoomId = peer.getRoomId();
+                            // get prev roomId of peer
+                            previousRoomId = peer.getRoomId();
 
-                        // add peer to new room
-                        targetRoom.getPeers().add(peer);
+                            // add peer to new room
+                            targetRoom.getPeers().add(peer);
 
-                        // TODO notify new room
+                            // TODO notify new room
 
-                        // rm peer from prev room
-                        if (previousRoomId != null) {
-                            if (!"".equals(previousRoomId)) {
-                                Room prevRoom = liveRoomMap.get(previousRoomId);
+                            // rm peer from prev room
+                            if (previousRoomId != null) {
+                                if (!"".equals(previousRoomId)) {
+                                    Room prevRoom = liveRoomMap.get(previousRoomId);
 
-                                // TODO notify old room
+                                    // TODO notify old room
 
-                                prevRoom.getPeers().remove(peer);
+                                    prevRoom.getPeers().remove(peer);
+                                }
                             }
+
+                            // TODO other room info
+
+                            // update current peer info
+                            peer.setFormerRoomId(previousRoomId);
+                            peer.setRoomId(targetRoom.getRoomId());
+
+                            isSuccessful = true;
                         }
-
-                        // TODO other room info
-
-                        // update current peer info
-                        peer.setFormerRoomId(previousRoomId);
-                        peer.setRoomId(targetRoom.getRoomId());
-
-                        isSuccessful = true;
                     }
                 }
             }
         }
-
 
         if (!isSuccessful) {
             // TODO send failed info to the peer
@@ -245,13 +248,25 @@ public class ChatRoomManager {
             // if user current in this room
             if (targetPeer.getRoomId().equals(roomId)) {
                 Room room = liveRoomMap.get(roomId);
-                room.getPeers().remove(targetPeer);
+                if (room != null) {
+
+                    // broadcast room change message in this room
+                    broadcastMessageInRoom(targetPeer,
+                            roomId,
+                            RoomMessageService.genRoomChangeResponseMsg(
+                                    targetPeer.getId(),
+                                    targetPeer.getRoomId(),
+                                    ""
+                            ),
+                            null);
+
+                    // remove the targetPeer from room
+                    room.getPeers().remove(targetPeer);
+                }
 
                 // update peer info
                 targetPeer.setRoomId("");
                 targetPeer.setFormerRoomId(roomId);
-
-                // TODO handle remove user message, broadcast or something
             }
         }
     }
@@ -323,6 +338,29 @@ public class ChatRoomManager {
             } else {
                 System.out.println("Room delete failed: No such room.");
             }
+        }
+    }
+
+    /**
+     * safely gen room content msg and send to peer
+     *
+     * @param peer Peer
+     * @param roomId target room id
+     */
+    public void sendRoomContentMsgToPeer(Peer peer,String roomId) {
+        synchronized (liveRoomMap) {
+            peer.getPeerConnection().sendTextMsgToMe(RoomMessageService.genRoomContentResponseMsg(roomId));
+        }
+    }
+
+    /**
+     * safely send roomlist msg to peer
+     *
+     * @param peer Peer
+     */
+    public void sendRoomListMsgToPeer(Peer peer) {
+        synchronized (liveRoomMap) {
+            peer.getPeerConnection().sendTextMsgToMe(RoomMessageService.genRoomListResponseMsg());
         }
     }
 }
