@@ -16,6 +16,7 @@ public class Constants {
     /**message type*/
     public static String HOST_CHANGE_JSON_TYPE = "hostchange";
     public static String LIST_NEIGHBORS_JSON_TYPE = "listneighbors";
+    public static String LIST_NEIGHBORS_RESPOND_JSON_TYPE = "listneighborsrespond";
     public static String SHOUT_JSON_TYPE = "shout";
 
     public static String JOIN_JSON_TYPE = "join";
