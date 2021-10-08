@@ -1,4 +1,4 @@
-package org.team54.msgBean;
+package org.team54.messageBean;
 
 import lombok.*;
 
