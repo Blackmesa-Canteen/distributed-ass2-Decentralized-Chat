@@ -1,7 +1,7 @@
 package org.team54.service;
 
 import com.google.gson.Gson;
-import org.team54.msgBean.*;
+import org.team54.messageBean.*;
 import org.team54.server.ChatRoomManager;
 import org.team54.server.NeighborPeerManager;
 
