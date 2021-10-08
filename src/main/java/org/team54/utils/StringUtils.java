@@ -85,7 +85,6 @@ public class StringUtils {
 
     /**
      * tester
-     * @param args
      */
     public static void main(String[] args) {
         String test = "202.96.140.77:2345";

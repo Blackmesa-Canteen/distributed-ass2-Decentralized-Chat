@@ -303,21 +303,28 @@ public class NeighborPeerManager {
      * <p>
      * Not including temp id one
      *
+     * @param peerExcluded the peer that is excluded, e.g.
+     *                     address of the client that issued listNeighbors request
      * @return peers arraylist
      */
-    public List<Peer> getAllNeighborPeers() {
+    public List<Peer> getAllNeighborPeers(Peer peerExcluded) {
         ArrayList<Peer> res = new ArrayList<>();
         synchronized (neighborPeerMap) {
             Collection<Peer> values = neighborPeerMap.values();
             for (Peer peer : values) {
 
-                // not including temp id one
-                if (!peer.isTempId()) {
+                // not including temp id one, and not self, and exclude target peer
+                if (peer != null
+                        && !peer.isTempId()
+                        && !peer.isSelfPeer()
+                        && !peer.equals(peerExcluded)) {
+
                     res.add(peer);
                 }
             }
         }
 
+        System.out.println("[debug] getAllNeighbors: " + res.toString());
         return res;
     }
 
