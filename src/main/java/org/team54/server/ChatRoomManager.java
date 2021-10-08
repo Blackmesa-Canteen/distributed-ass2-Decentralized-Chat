@@ -141,11 +141,20 @@ public class ChatRoomManager {
                     Room room = liveRoomMap.get(previousRoomId);
 
                     if (room != null) {
-
-                        // TODO notify client leave the room
-
-                        if (room.getPeers().remove(peer)) {
+                        // notify client leave the room
+                        if (room.getPeers().contains(peer)) {
                             isSuccessful = true;
+
+                            broadcastMessageInRoom(peer,
+                                    previousRoomId,
+                                    RoomMessageService.genRoomChangeResponseMsg(
+                                            peer.getId(),
+                                            previousRoomId,
+                                            roomId),
+                                    null
+                            );
+
+                            room.getPeers().remove(peer);
 
                             // update current peer info
                             peer.setFormerRoomId(previousRoomId);
@@ -171,24 +180,39 @@ public class ChatRoomManager {
                             // add peer to new room
                             targetRoom.getPeers().add(peer);
 
-                            // TODO notify new room
-
                             // rm peer from prev room
                             if (previousRoomId != null) {
                                 if (!"".equals(previousRoomId)) {
                                     Room prevRoom = liveRoomMap.get(previousRoomId);
 
-                                    // TODO notify old room
-
+                                    // notify old room, except peer itself (prevent send roomchage twice to this peer)
+                                    broadcastMessageInRoom(
+                                            peer,
+                                            previousRoomId,
+                                            RoomMessageService.genRoomChangeResponseMsg(
+                                                    peer.getId(),
+                                                    previousRoomId,
+                                                    roomId),
+                                            peer
+                                    );
                                     prevRoom.getPeers().remove(peer);
                                 }
                             }
 
-                            // TODO other room info
-
                             // update current peer info
                             peer.setFormerRoomId(previousRoomId);
-                            peer.setRoomId(targetRoom.getRoomId());
+                            peer.setRoomId(roomId);
+
+                            // notify new room (only the user is in the room, can notify with this method)
+                            broadcastMessageInRoom(
+                                    peer,
+                                    roomId,
+                                    RoomMessageService.genRoomChangeResponseMsg(
+                                            peer.getId(),
+                                            previousRoomId,
+                                            roomId),
+                                    null
+                            );
 
                             isSuccessful = true;
                         }
@@ -198,7 +222,10 @@ public class ChatRoomManager {
         }
 
         if (!isSuccessful) {
-            // TODO send failed info to the peer
+
+            // only send unchanged roomchange msg to that peer
+            peer.getPeerConnection().sendTextMsgToMe(
+                    RoomMessageService.genRoomChangeResponseMsg(peer.getId(), peer.getRoomId(), peer.getRoomId()));
         }
     }
 
@@ -230,7 +257,7 @@ public class ChatRoomManager {
 
     /**
      * remove a peer in a room **politely**
-     *
+     * <p>
      * !! THIS IS NOT KICK !!
      *
      * @param roomId     string roomid
@@ -251,7 +278,8 @@ public class ChatRoomManager {
                 if (room != null) {
 
                     // broadcast room change message in this room
-                    broadcastMessageInRoom(targetPeer,
+                    broadcastMessageInRoom(
+                            targetPeer,
                             roomId,
                             RoomMessageService.genRoomChangeResponseMsg(
                                     targetPeer.getId(),
@@ -273,7 +301,7 @@ public class ChatRoomManager {
 
     /**
      * !! THIS IS KICK, WILL ALSO BAN THE USER !!
-     *
+     * <p>
      * kick and ban a peer, call by the owner
      *
      * @param peerId Peer ID
@@ -281,18 +309,14 @@ public class ChatRoomManager {
     public void kickPeerByPeerId(String peerId) {
         Peer kickedPeer = neighborPeerManager.getPeerByPeerId(peerId);
         if (kickedPeer != null) {
+            // remove from the room (don't need below because handle disconnect will remove him)
+            // removePeerFromRoomId(roomId, kickedPeer);
 
-            String roomId = kickedPeer.getRoomId();
-            if (roomId != null) {
-                // remove from the room
-                removePeerFromRoomId(roomId, kickedPeer);
+            // add black list
+            neighborPeerManager.addPeerHostNameToBlackList(kickedPeer);
 
-                // add black list
-                neighborPeerManager.addPeerHostNameToBlackList(kickedPeer);
-
-                // disconnect this peer
-                neighborPeerManager.handleDisconnectNeighborPeer(kickedPeer);
-            }
+            // disconnect this peer
+            neighborPeerManager.handleDisconnectNeighborPeer(kickedPeer);
         }
     }
 
@@ -327,9 +351,17 @@ public class ChatRoomManager {
                 for (Peer peer : peers) {
                     if (peer.getRoomId().equals(roomId)) {
 
+                        // send message to this peer that he is quit to "" room
+                        peer.getPeerConnection().sendTextMsgToMe(
+                                RoomMessageService.genRoomChangeResponseMsg(
+                                        peer.getId(),
+                                        roomId,
+                                        ""
+                                )
+                        );
+
                         peer.setRoomId("");
                         peer.setFormerRoomId(roomId);
-                        // TODO send message to this peer that he is quit
                     }
                 }
 
@@ -344,10 +376,10 @@ public class ChatRoomManager {
     /**
      * safely gen room content msg and send to peer
      *
-     * @param peer Peer
+     * @param peer   Peer
      * @param roomId target room id
      */
-    public void sendRoomContentMsgToPeer(Peer peer,String roomId) {
+    public void sendRoomContentMsgToPeer(Peer peer, String roomId) {
         synchronized (liveRoomMap) {
             peer.getPeerConnection().sendTextMsgToMe(RoomMessageService.genRoomContentResponseMsg(roomId));
         }
