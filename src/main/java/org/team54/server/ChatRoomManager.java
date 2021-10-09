@@ -2,7 +2,7 @@ package org.team54.server;
 
 import org.team54.model.Peer;
 import org.team54.model.Room;
-import org.team54.service.RoomMessageService;
+import org.team54.service.MessageServices;
 import org.team54.utils.StringUtils;
 
 import java.util.ArrayList;
@@ -147,7 +147,7 @@ public class ChatRoomManager {
 
                             broadcastMessageInRoom(peer,
                                     previousRoomId,
-                                    RoomMessageService.genRoomChangeResponseMsg(
+                                    MessageServices.genRoomChangeResponseMsg(
                                             peer.getId(),
                                             previousRoomId,
                                             roomId),
@@ -189,7 +189,7 @@ public class ChatRoomManager {
                                     broadcastMessageInRoom(
                                             peer,
                                             previousRoomId,
-                                            RoomMessageService.genRoomChangeResponseMsg(
+                                            MessageServices.genRoomChangeResponseMsg(
                                                     peer.getId(),
                                                     previousRoomId,
                                                     roomId),
@@ -207,7 +207,7 @@ public class ChatRoomManager {
                             broadcastMessageInRoom(
                                     peer,
                                     roomId,
-                                    RoomMessageService.genRoomChangeResponseMsg(
+                                    MessageServices.genRoomChangeResponseMsg(
                                             peer.getId(),
                                             previousRoomId,
                                             roomId),
@@ -225,7 +225,7 @@ public class ChatRoomManager {
 
             // only send unchanged roomchange msg to that peer
             peer.getPeerConnection().sendTextMsgToMe(
-                    RoomMessageService.genRoomChangeResponseMsg(peer.getId(), peer.getRoomId(), peer.getRoomId()));
+                    MessageServices.genRoomChangeResponseMsg(peer.getId(), peer.getRoomId(), peer.getRoomId()));
         }
     }
 
@@ -281,7 +281,7 @@ public class ChatRoomManager {
                     broadcastMessageInRoom(
                             targetPeer,
                             roomId,
-                            RoomMessageService.genRoomChangeResponseMsg(
+                            MessageServices.genRoomChangeResponseMsg(
                                     targetPeer.getId(),
                                     targetPeer.getRoomId(),
                                     ""
@@ -353,7 +353,7 @@ public class ChatRoomManager {
 
                         // send message to this peer that he is quit to "" room
                         peer.getPeerConnection().sendTextMsgToMe(
-                                RoomMessageService.genRoomChangeResponseMsg(
+                                MessageServices.genRoomChangeResponseMsg(
                                         peer.getId(),
                                         roomId,
                                         ""
@@ -381,7 +381,7 @@ public class ChatRoomManager {
      */
     public void sendRoomContentMsgToPeer(Peer peer, String roomId) {
         synchronized (liveRoomMap) {
-            peer.getPeerConnection().sendTextMsgToMe(RoomMessageService.genRoomContentResponseMsg(roomId));
+            peer.getPeerConnection().sendTextMsgToMe(MessageServices.genRoomContentResponseMsg(roomId));
         }
     }
 
@@ -392,7 +392,7 @@ public class ChatRoomManager {
      */
     public void sendRoomListMsgToPeer(Peer peer) {
         synchronized (liveRoomMap) {
-            peer.getPeerConnection().sendTextMsgToMe(RoomMessageService.genRoomListResponseMsg());
+            peer.getPeerConnection().sendTextMsgToMe(MessageServices.genRoomListResponseMsg());
         }
     }
 }

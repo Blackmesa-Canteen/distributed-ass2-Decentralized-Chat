@@ -2,9 +2,8 @@ package org.team54.server;
 
 import com.alibaba.fastjson.JSONException;
 import com.alibaba.fastjson.JSONObject;
-import org.team54.messageBean.RoomChangeMessage;
 import org.team54.model.Peer;
-import org.team54.service.RoomMessageService;
+import org.team54.service.MessageServices;
 import org.team54.utils.CharsetConvertor;
 import org.team54.utils.Constants;
 
@@ -193,7 +192,7 @@ public class ChatServer implements Runnable {
                         throw new JSONException("Missing attributes");
                     }
 
-                    String relayMessage = RoomMessageService.genRelayMessage(sourcePeer.getId(), text);
+                    String relayMessage = MessageServices.genRelayMessage(sourcePeer.getId(), text);
                     chatRoomManager.broadcastMessageInRoom(sourcePeer
                             , sourcePeer.getRoomId()
                             , relayMessage,

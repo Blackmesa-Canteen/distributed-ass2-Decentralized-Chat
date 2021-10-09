@@ -2,7 +2,7 @@ package org.team54.server;
 
 import org.team54.model.Peer;
 import org.team54.model.PeerConnection;
-import org.team54.service.RoomMessageService;
+import org.team54.service.MessageServices;
 import org.team54.utils.Constants;
 import org.team54.utils.StringUtils;
 
@@ -58,20 +58,21 @@ public class NeighborPeerManager {
      */
     public void updatePeerIdentityIdPort(Peer peer, String newIdentity) {
 
+        // TODO need a great fix
         String originalPeerId = peer.getId();
-        int newPort = 0;
-        String newHostString = "";
+        int listenPort = 0;
+        String localHostString = "";
         if (newIdentity != null) {
             System.out.println("[debug] newIdentity text received: " + newIdentity);
-            newPort = StringUtils.parsePortNumFromHostText(newIdentity);
-            newHostString = StringUtils.parseHostStringFromHostText(newIdentity);
-            System.out.println("[debug]update peer to new port:" + newPort);
+            listenPort = StringUtils.parsePortNumFromHostText(newIdentity);
+            localHostString = StringUtils.parseHostStringFromHostText(newIdentity);
+            System.out.println("[debug]update peer to new port:" + listenPort);
         }
 
         // newIdentity is private address,
         // so we use combination: peer original connection's hostString + newport
         String newPeerId = StringUtils.parseHostStringFromHostText(originalPeerId)
-                + ":" + newPort;
+                + ":" + listenPort;
         System.out.println("[debug]new peer port: " + newPeerId);
 
         // judge whether the peer is the local peer or not
@@ -95,8 +96,8 @@ public class NeighborPeerManager {
                 livingPeers.remove(originalPeerId);
                 // not temp id, then can be searched out
                 peer.setId(newPeerId);
-                peer.setHostPort(newPort);
-                peer.setHostName(newHostString);
+                peer.setListenPort(listenPort);
+                peer.setLocalHostName(localHostString);
 
                 peer.setTempId(false);
             } else {
@@ -130,8 +131,10 @@ public class NeighborPeerManager {
                     .formerRoomId("")
                     .roomId("")
                     .isTempId(true)
-                    .hostName(remoteAddress.getHostString())
-                    .hostPort(Constants.NON_PORT_DESIGNATED)
+                    .localHostName("")
+                    .listenPort(Constants.NON_PORT_DESIGNATED)
+                    .outgoingPort(StringUtils.parsePortNumFromHostText(hostText))
+                    .publicHostName(StringUtils.parseHostStringFromHostText(hostText))
                     .build();
 
             PeerConnection connection = PeerConnection.builder()
@@ -250,7 +253,7 @@ public class NeighborPeerManager {
             // if no room joined, send empty room change response to this peer only.
             // to make sure "When the client that is disconnecting receives
             // the RoomChange message, then it can close the connection."
-            String roomChangeResponseMsg = RoomMessageService.genRoomChangeResponseMsg(
+            String roomChangeResponseMsg = MessageServices.genRoomChangeResponseMsg(
                     peer.getId(),
                     "",
                     ""

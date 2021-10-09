@@ -25,9 +25,12 @@ public class Peer {
 
     private PeerConnection peerConnection;
 
+    private String publicHostName;
+    private int outgoingPort;
     /** c2s host info, get from "hostchange" message that is sent upon connection */
-    private String hostName;
-    private int hostPort;
+    private String localHostName;
+    /** listening port */
+    private int listenPort;
 
     /** whether this peer is the peer himself, or is a remote peer */
     private volatile boolean isSelfPeer;

@@ -6,9 +6,9 @@ import org.team54.model.Peer;
 import org.team54.model.Room;
 import org.team54.server.ChatRoomManager;
 import org.team54.server.NeighborPeerManager;
+import org.team54.utils.StringUtils;
 
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 
 /**
@@ -17,12 +17,37 @@ import java.util.List;
  * @description
  * @create 2021-10-08 11:21
  */
-public class RoomMessageService {
+public class MessageServices {
     private static final ChatRoomManager chatRoomManager = ChatRoomManager.getInstance();
     private static final NeighborPeerManager neighborPeerManager = NeighborPeerManager.getInstance();
 
-    /** used by client to join a room */
-    public static String genJoinRoomMsg(String roomId) {
+    /**
+     * used by client to gen hostChange Message right after the connect attempt
+     *
+     * @param host hostString:listenPort
+     * @return json request for sending
+     */
+    public static String genHostChangeRequestMessage(String host) {
+        HostChangeMessage jsonObject = HostChangeMessage.builder()
+                .host(host)
+                .build();
+        return new Gson().toJson(jsonObject) + "\n";
+    }
+
+    /** used by client to gen quit request */
+    public static String genQuitRequestMessage() {
+        QuitMessage jsonObject = QuitMessage.builder().build();
+
+        return new Gson().toJson(jsonObject) + "\n";
+    }
+
+    /**
+     * used by client gen join a room request
+     *
+     * @param roomId room Id want to join
+     * @return json request for sending
+     */
+    public static String genJoinRoomRequestMessage(String roomId) {
         JoinRoomMessage jsonObject = JoinRoomMessage.builder()
                 .roomid(roomId)
                 .build();
@@ -40,8 +65,13 @@ public class RoomMessageService {
         return new Gson().toJson(jsonObject) + "\n";
     }
 
-    /** used by client to gen who query message */
-    public static String genWhoQueryMsg(String roomId) {
+    /**
+     * used by client to gen who query message request
+     *
+     * @param roomId room Id that want to issue who command
+     * @return request json to send
+     */
+    public static String genWhoQueryRequestMessage(String roomId) {
         WhoMessage jsonObject = WhoMessage.builder()
                 .roomid(roomId)
                 .build();
@@ -67,10 +97,26 @@ public class RoomMessageService {
         return new Gson().toJson(jsonObject) + "\n";
     }
 
-    /** used by client to gen chat message to server */
-    public static String genClientMessage(String content) {
+    /** used by client to gen chat message request to server */
+    public static String genClientChatMessage(String content) {
         ClientSendMessage jsonObject = ClientSendMessage.builder()
                 .content(content)
+                .build();
+
+        return new Gson().toJson(jsonObject) + "\n";
+    }
+
+    /**
+     * used by client to gen shout message to server
+     * only need content, the rest of attributes will be handled by server
+     *
+     * @return shout message json
+     */
+    public static String genShoutChatMessage(String content) {
+        ShotMessage jsonObject = ShotMessage.builder()
+                .content(content)
+                .srcIdentity("")
+                .agentIdentity("")
                 .build();
 
         return new Gson().toJson(jsonObject) + "\n";
@@ -85,8 +131,8 @@ public class RoomMessageService {
         return new Gson().toJson(jsonObject) + "\n";
     }
 
-    /** used by client to gen list message to get Room list from server */
-    public static String genListMessage(String roomId) {
+    /** used by client to gen list message to get Room list request from server */
+    public static String genListRequestMessage(String roomId) {
         ListMessage jsonObject = ListMessage.builder().build();
 
         return new Gson().toJson(jsonObject) + "\n";
@@ -116,4 +162,30 @@ public class RoomMessageService {
 
         return new Gson().toJson(jsonObject) + "\n";
     }
+
+    /** used by client to get list neighbors request of a remote server */
+    public static String genListNeighborsRequestMessage() {
+        ClientListNeighborsMessage jsonObject = ClientListNeighborsMessage.builder().build();
+        return new Gson().toJson(jsonObject) + "\n";
+    }
+
+    public static String genListNeighborsResponseMsg(Peer peerRequester) {
+        // need to exclude requester himself
+        List<Peer> allNeighborPeers = neighborPeerManager.getAllNeighborPeers(peerRequester);
+
+        // String res: public ip : listening port
+        List<String> res = new ArrayList<>();
+        for (Peer peer : allNeighborPeers) {
+            String hostText = peer.getPublicHostName() + ":" + peer.getListenPort();
+            System.out.println("[debug] response neighbor peer hostname: " + hostText);
+            res.add(hostText);
+        }
+
+        ServerRespondNeighborsMessage jsonObject = ServerRespondNeighborsMessage.builder()
+                .neighbors(res)
+                .build();
+
+        return new Gson().toJson(jsonObject) + "\n";
+    }
+
 }
