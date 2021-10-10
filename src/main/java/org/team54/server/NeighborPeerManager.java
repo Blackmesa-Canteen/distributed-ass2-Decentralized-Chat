@@ -23,9 +23,19 @@ public class NeighborPeerManager {
     private static NeighborPeerManager instance;
     private ChatServer chatServer;
 
-    private final ConcurrentHashMap<SocketChannel, Peer> neighborPeerMap;
-    private final HashSet<String> peerConnectionTextBlackList;
-    private final ConcurrentHashMap<String, Peer> livingPeers;
+    /** TODO this is master peer, 就是当这个本Peer A以成员身份加入Peer B的聊天室, masterPeer就用来保存下上游Peer B的地址的文本信息,
+     *  主要为了获得到本peer加入的房间server的域名文本信息,这样list neighbor就能正常显示上游的peer节点的地址了 */
+    /** masterPeer 是唯一的,因为一个peer同时只能加入一个peer,和其一个聊天室 */
+    /** 如果master peer 是这个服务器自己, isSelfPeer设为true, 防止list neighbor时重复list出来自己 */
+    /** masterPeer 不用存peerConnection字段,因为不会在server这里以server身份给masterPeer发信息 */
+    /** masterPeer 其余的字段设置好; 如果和这个masterPeer断开了,就把masterPeer设置为""; 如果又连接新的Peer准备加房,再设置上它 */
+    private Peer masterPeer;
+
+    /** These are member peer */
+    private final ConcurrentHashMap<SocketChannel, Peer> neighborMemberPeerMap;
+    private final HashSet<String> memberPeerConnectionTextBlackList;
+    private final ConcurrentHashMap<String, Peer> livingMemberPeers;
+
     private final ChatRoomManager chatRoomManager;
 
     public static synchronized NeighborPeerManager getInstance() {
@@ -37,14 +47,30 @@ public class NeighborPeerManager {
     }
 
     private NeighborPeerManager() {
-        neighborPeerMap = new ConcurrentHashMap<>();
-        peerConnectionTextBlackList = new HashSet<>();
+        neighborMemberPeerMap = new ConcurrentHashMap<>();
+        memberPeerConnectionTextBlackList = new HashSet<>();
         chatRoomManager = ChatRoomManager.getInstance();
-        livingPeers = new ConcurrentHashMap<>();
+        livingMemberPeers = new ConcurrentHashMap<>();
     }
 
     public void setChatServer(ChatServer chatServer) {
         this.chatServer = chatServer;
+    }
+
+    /**
+     * // TODO 获得masterPeer
+     * @return masterPeer
+     */
+    public Peer getMasterPeer() {
+        return masterPeer;
+    }
+
+    /**
+     * // TODO 不要忘记设置masterPeer,如果当本Peer主动连接到另一个Peer准备加房间;也可以置"",当本peer quit了那个peer
+     * @param masterPeer
+     */
+    public void setMasterPeer(Peer masterPeer) {
+        this.masterPeer = masterPeer;
     }
 
     /**
@@ -88,18 +114,18 @@ public class NeighborPeerManager {
         }
 
         // update hashmap and so on
-        synchronized (livingPeers) {
+        synchronized (livingMemberPeers) {
 
-            Peer peerObj = livingPeers.get(originalPeerId);
-            if (!livingPeers.containsKey(newPeerId)) {
-                livingPeers.put(newPeerId, peerObj);
-                livingPeers.remove(originalPeerId);
+            Peer peerObj = livingMemberPeers.get(originalPeerId);
+            if (!livingMemberPeers.containsKey(newPeerId)) {
+                livingMemberPeers.put(newPeerId, peerObj);
+                livingMemberPeers.remove(originalPeerId);
                 // not temp id, then can be searched out
                 peer.setId(newPeerId);
                 peer.setListenPort(listenPort);
                 peer.setLocalHostName(localHostString);
 
-                peer.setTempId(false);
+                peer.setGotListenPort(false);
             } else {
                 System.out.println("[debug] update peer indentity failed, already connected");
             }
@@ -107,7 +133,8 @@ public class NeighborPeerManager {
     }
 
     /**
-     * will be called when accept a new incoming connection
+     * will be called when accept a new incoming connection,
+     * the peer is downward peer, which means these peers are members
      *
      * @param newSocketChannel
      */
@@ -130,7 +157,7 @@ public class NeighborPeerManager {
                     .originalConnectionHostText(hostText)
                     .formerRoomId("")
                     .roomId("")
-                    .isTempId(true)
+                    .isGotListenPort(true)
                     .localHostName("")
                     .listenPort(Constants.NON_PORT_DESIGNATED)
                     .outgoingPort(StringUtils.parsePortNumFromHostText(hostText))
@@ -157,17 +184,17 @@ public class NeighborPeerManager {
 
             // put the new peer in hashmap
             // put、remove and clear need to get a lock
-            synchronized (neighborPeerMap) {
-                if (neighborPeerMap.containsKey(newSocketChannel)) {
+            synchronized (neighborMemberPeerMap) {
+                if (neighborMemberPeerMap.containsKey(newSocketChannel)) {
                     System.out.println("[debug]please don't connect for twice.");
                     return;
                 } else {
-                    neighborPeerMap.put(newSocketChannel, peerInstance);
+                    neighborMemberPeerMap.put(newSocketChannel, peerInstance);
                 }
             }
 
-            synchronized (livingPeers) {
-                livingPeers.putIfAbsent(peerInstance.getId(), peerInstance);
+            synchronized (livingMemberPeers) {
+                livingMemberPeers.putIfAbsent(peerInstance.getId(), peerInstance);
             }
 
             System.out.println("[debug]put new peer in neighbor");
@@ -187,7 +214,7 @@ public class NeighborPeerManager {
      */
     public Peer getPeerWithSocketChannel(SocketChannel socketChannel) {
         // using concurrentHashMap, read don't need to get lock.
-        return neighborPeerMap.get(socketChannel);
+        return neighborMemberPeerMap.get(socketChannel);
     }
 
     /**
@@ -197,8 +224,8 @@ public class NeighborPeerManager {
      */
     public boolean isPeerLivingByPeerId(String peerId) {
         if (peerId != null) {
-            synchronized (livingPeers) {
-                return livingPeers.containsKey(peerId);
+            synchronized (livingMemberPeers) {
+                return livingMemberPeers.containsKey(peerId);
             }
         }
 
@@ -215,8 +242,8 @@ public class NeighborPeerManager {
 
         if (id != null && id.length() > 0) {
 
-            synchronized (livingPeers) {
-                return livingPeers.get(id);
+            synchronized (livingMemberPeers) {
+                return livingMemberPeers.get(id);
             }
 
 //            synchronized (neighborPeerMap) {
@@ -242,8 +269,8 @@ public class NeighborPeerManager {
         SocketChannel socketChannel = peer.getPeerConnection().getSocketChannel();
 
         // remove living peer record
-        synchronized (livingPeers) {
-            livingPeers.remove(peer.getId());
+        synchronized (livingMemberPeers) {
+            livingMemberPeers.remove(peer.getId());
         }
 
         // if the peer has joined a room, exit
@@ -263,8 +290,8 @@ public class NeighborPeerManager {
         }
 
         // remove the peer from neighbor peer map
-        synchronized (neighborPeerMap) {
-            neighborPeerMap.remove(socketChannel);
+        synchronized (neighborMemberPeerMap) {
+            neighborMemberPeerMap.remove(socketChannel);
         }
 
         // try to close this peer connection
@@ -283,14 +310,14 @@ public class NeighborPeerManager {
 
             // remove the peer from neighbor peer map
             Peer peer = null;
-            synchronized (neighborPeerMap) {
-                peer = neighborPeerMap.get(socketChannel);
-                neighborPeerMap.remove(socketChannel);
+            synchronized (neighborMemberPeerMap) {
+                peer = neighborMemberPeerMap.get(socketChannel);
+                neighborMemberPeerMap.remove(socketChannel);
             }
 
             if (peer != null) {
-                synchronized (livingPeers) {
-                    livingPeers.remove(peer.getId());
+                synchronized (livingMemberPeers) {
+                    livingMemberPeers.remove(peer.getId());
                 }
             }
 
@@ -320,19 +347,24 @@ public class NeighborPeerManager {
      */
     public List<Peer> getAllNeighborPeers(Peer peerExcluded) {
         ArrayList<Peer> res = new ArrayList<>();
-        synchronized (neighborPeerMap) {
-            Collection<Peer> values = neighborPeerMap.values();
+        synchronized (neighborMemberPeerMap) {
+            Collection<Peer> values = neighborMemberPeerMap.values();
             for (Peer peer : values) {
 
-                // not including temp id one, and not self, and exclude target peer
+                // peer should have listenport, and not self, and exclude target peer
                 if (peer != null
-                        && !peer.isTempId()
+                        && peer.isGotListenPort()
                         && !peer.isSelfPeer()
                         && !peer.equals(peerExcluded)) {
 
                     res.add(peer);
                 }
             }
+        }
+
+        // add server peer that he is belongs to and is not himself
+        if (masterPeer != null && !masterPeer.isSelfPeer()) {
+            res.add(masterPeer);
         }
 
         System.out.println("[debug] getAllNeighbors: " + res.toString());
@@ -358,8 +390,8 @@ public class NeighborPeerManager {
             remoteAddress = (InetSocketAddress) kickedPeer.getPeerConnection().getSocketChannel().getRemoteAddress();
             String hostText = StringUtils.getHostTextFromInetSocketAddress(remoteAddress);
 
-            synchronized (peerConnectionTextBlackList) {
-                peerConnectionTextBlackList.add(hostText);
+            synchronized (memberPeerConnectionTextBlackList) {
+                memberPeerConnectionTextBlackList.add(hostText);
             }
 
         } catch (IOException e) {
@@ -375,9 +407,9 @@ public class NeighborPeerManager {
      * @return true if in the blacklist
      */
     public boolean isHostNameInBlackList(String hostString) {
-        synchronized (peerConnectionTextBlackList) {
+        synchronized (memberPeerConnectionTextBlackList) {
             if (hostString != null) {
-                return peerConnectionTextBlackList.contains(hostString);
+                return memberPeerConnectionTextBlackList.contains(hostString);
             }
         }
 

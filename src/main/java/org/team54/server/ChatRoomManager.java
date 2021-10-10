@@ -133,7 +133,7 @@ public class ChatRoomManager {
         boolean isSuccessful = false;
 
         // make sure the peer's id is updated by hostchange
-        if (!peer.isTempId()) {
+        if (!peer.isGotListenPort()) {
             // handle "" empty room, just remove the peer from current room
             if ("".equals(roomId)) {
                 synchronized (liveRoomMap) {
@@ -248,6 +248,25 @@ public class ChatRoomManager {
                 ArrayList<Peer> peers = room.getPeers();
                 for (Peer peer : peers) {
                     if (peerExcluded == null || !peerExcluded.equals(peer)) {
+                        peer.getPeerConnection().sendTextMsgToMe(message);
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * broadcast a message among all rooms
+     *
+     * @param message String message
+     */
+    public void broadcastMessageInAllRoom(String message) {
+        synchronized (liveRoomMap) {
+            for(Room room : liveRoomMap.values()) {
+                // make sure room is not null, and the peer is in this room
+                if (room != null) {
+                    ArrayList<Peer> peers = room.getPeers();
+                    for (Peer peer : peers) {
                         peer.getPeerConnection().sendTextMsgToMe(message);
                     }
                 }
