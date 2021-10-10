@@ -20,7 +20,7 @@ public class ShoutMessage {
 
     private String content;
 
-    // TODO 可能还会有其他的变量:
+    // TODO 可能还会有其他的变量,你需要啥就添加啥:
 
     // TODO client peer产生的第一条shotMessage请求,该项置"", 见Message services的genRootShoutChatMessage方法
     // server peer会判断,当此字段为"",说明是来自根的shotmessage,就会给它赋值为来源root的公网identity.

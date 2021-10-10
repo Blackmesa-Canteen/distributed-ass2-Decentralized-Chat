@@ -89,6 +89,10 @@ public class StringUtils {
         return inetSocketAddress.getHostString() + ":" + inetSocketAddress.getPort();
     }
 
+    /**
+     * generate random hash string in 30 length
+     * @return random hashId
+     */
     public static String genHashId() {
         int LENGTH = 30;
         StringBuilder val = new StringBuilder();
@@ -117,6 +121,7 @@ public class StringUtils {
 //        String res = parseHostStringFromHostText(test);
 //        System.out.println(res);
 //        System.out.println(parsePortNumFromHostText(test));
+        System.out.println(Constants.THIS_PEER_HASH_ID);
         System.out.println(Constants.THIS_PEER_HASH_ID);
     }
 }

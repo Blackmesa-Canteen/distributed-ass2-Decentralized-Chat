@@ -8,7 +8,7 @@ package org.team54.utils;
  */
 public class Constants {
 
-    /** at start, gen random hashId for this Chat peer */
+    /** TODO at start, gen random hashId for this Chat peer */
     /** can be called by ChatPeer.PEER_HASH_ID */
     public static final String THIS_PEER_HASH_ID = StringUtils.genHashId();
 

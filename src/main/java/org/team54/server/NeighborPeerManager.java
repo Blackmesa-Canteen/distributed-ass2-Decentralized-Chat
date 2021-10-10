@@ -66,7 +66,7 @@ public class NeighborPeerManager {
     }
 
     /**
-     * // TODO 不要忘记设置masterPeer,如果当本Peer主动连接到另一个Peer准备加房间;也可以置"",当本peer quit了那个peer
+     * // TODO 不要忘记设置masterPeer,如果当本Peer主动连接到另一个Peer, 设置那个Peer的各种文本信息(主要是域名信息)实例化成Peer对象,放进来; 当本peer quit了那个peer, 置masterPeer为"",
      * @param masterPeer
      */
     public void setMasterPeer(Peer masterPeer) {
