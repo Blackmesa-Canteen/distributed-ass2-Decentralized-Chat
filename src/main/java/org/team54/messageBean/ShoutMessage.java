@@ -30,6 +30,6 @@ public class ShoutMessage {
 
     // TODO member  client产生的第一条shotMessage请求里赋值随机hashId, 当server peer发现两次收到同一个hashId的shout,将不会给下游peer转发第二遍
     // 防止死循环
-    private String hashId;
+    private String shoutMessageHashId;
 
 }

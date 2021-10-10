@@ -14,10 +14,12 @@ import org.team54.utils.Constants;
 @NoArgsConstructor
 @Builder
 @ToString
+// TODO 使用 MessageServices里的genHostChangeRequestMessage生成这个实例
 public class HostChangeMessage {
     @Builder.Default
     private String type = Constants.HOST_CHANGE_JSON_TYPE;
     private String host;
 
+    // TODO 新变量: 记录当前client peer 的 id信息, 当你client peer主动链接到另一个peer, 把Constants.THIS_PEER_HASH_ID包含在这个字段里,
     private String hashId;
 }

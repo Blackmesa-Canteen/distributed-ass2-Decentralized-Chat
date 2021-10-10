@@ -117,7 +117,7 @@ public class MessageServices {
         ShoutMessage jsonObject = ShoutMessage.builder()
                 .content(content)
                 .rootIdentity("")
-                .hashId(hashId)
+                .shoutMessageHashId(hashId)
                 .build();
 
         return new Gson().toJson(jsonObject) + "\n";
@@ -127,7 +127,7 @@ public class MessageServices {
         ShoutMessage jsonObject = ShoutMessage.builder()
                 .content(content)
                 .rootIdentity(rootIdentity)
-                .hashId(hashId)
+                .shoutMessageHashId(hashId)
                 .build();
 
         return new Gson().toJson(jsonObject) + "\n";

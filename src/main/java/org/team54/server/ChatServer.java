@@ -208,9 +208,14 @@ public class ChatServer implements Runnable {
                             , relayMessage,
                             null);
 
-                    // Hostchange信息,client连接后立刻会发送过来
+                    // Hostchange信息,client连接后立刻会发送过来, 用来给Peer model赋予listening port信息
                 } else if (requestType.equals(Constants.HOST_CHANGE_JSON_TYPE)) {
-                    // TODO host change
+                    String host = requestDataObject.getString("host");
+                    String peerHashId = requestDataObject.getString("hashId");
+                    if (host == null || peerHashId == null) {
+                        throw new JSONException("Missing attributes");
+                    }
+                    neighborPeerManager.updatePeerWithHostChange(sourcePeer, host, peerHashId);
 
                     // join请求
                 } else if (requestType.equals(Constants.JOIN_JSON_TYPE)) {
@@ -246,9 +251,14 @@ public class ChatServer implements Runnable {
                     // TODO shout
                     // shout请求
                 } else if (requestType.equals(Constants.SHOUT_JSON_TYPE)) {
+
                     String content = requestDataObject.getString("content");
                     String rootIdentity = requestDataObject.getString("rootIdentity");
-                    String hashId = requestDataObject.getString("hashId");
+                    String shoutMessageHashId = requestDataObject.getString("shoutMessageHashId");
+
+                    if (content == null || rootIdentity == null || shoutMessageHashId == null) {
+                        throw new JSONException("Missing attributes");
+                    }
 
                     // 只有加入了房间的peer才能shout
                     if ("".equals(sourcePeer.getRoomId())) {
@@ -257,21 +267,21 @@ public class ChatServer implements Runnable {
 
                     synchronized (shoutHashIdHistory) {
                         // 判断是否已经转发过这个shout信息了.如果已经转发过,无视这个请求
-                        if (shoutHashIdHistory.contains(hashId)) {
+                        if (shoutHashIdHistory.contains(shoutMessageHashId)) {
                             return;
                         }
 
-                        // 新的shout hashId, 记录之
-                        shoutHashIdHistory.add(hashId);
+                        // 新的shout shoutMessageHashId, 记录之
+                        shoutHashIdHistory.add(shoutMessageHashId);
                     }
 
                     // 如果 rootIdentity 为"",说明该客户是发shout的root, 赋值这个客户peer的公网identity在message上,然后转发
-                    if (rootIdentity == null || "".equals(rootIdentity)) {
+                    if ("".equals(rootIdentity)) {
                         rootIdentity = sourcePeer.getPublicHostName() + ":" + sourcePeer.getOutgoingPort();
 
                         // 重新生成一个带rootIdentity的shoutMsg
                         String newShoutMessageWithRootIdentity =
-                                MessageServices.genRelayShoutChatMessage(hashId, content, rootIdentity);
+                                MessageServices.genRelayShoutChatMessage(shoutMessageHashId, content, rootIdentity);
 
                         // 将这个新的shoutMessage广播到所有子房间
                         chatRoomManager.broadcastMessageInAllRoom(newShoutMessageWithRootIdentity);
@@ -292,7 +302,6 @@ public class ChatServer implements Runnable {
             } else {
                 throw new JSONException("JSON's type is not exist");
             }
-
 
         }
     }

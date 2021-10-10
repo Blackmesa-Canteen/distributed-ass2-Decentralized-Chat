@@ -78,20 +78,20 @@ public class NeighborPeerManager {
      * we need to get listen port
      *
      * @param peer        peer
-     * @param newIdentity new host text
+     * @param incomingHost new host text
      */
-    public void updatePeerWithHostChange(Peer peer, String newIdentity, String incomingHashId) {
+    public void updatePeerWithHostChange(Peer peer, String incomingHost, String incomingHashId) {
 
         int listenPort = 0;
         String localHostString = "";
-        if (newIdentity != null) {
-            listenPort = StringUtils.parsePortNumFromHostText(newIdentity);
-            localHostString = StringUtils.parseHostStringFromHostText(newIdentity);
-            System.out.println("[debug] newIdentity: " + newIdentity);
+        if (incomingHost != null) {
+            listenPort = StringUtils.parsePortNumFromHostText(incomingHost);
+            localHostString = StringUtils.parseHostStringFromHostText(incomingHost);
+            System.out.println("[debug] incomingHost: " + incomingHost);
             System.out.println("[debug] server got listen port: " + listenPort);
         }
 
-        // newIdentity is private address,
+        // incomingHost is private address,
         // so we use combination: peer original connection's hostString + newport
 //        String newPeerIdentity = publicHostString + ":" + listenPort;
 //        System.out.println("[debug]new peer port: " + newPeerIdentity);
@@ -102,7 +102,7 @@ public class NeighborPeerManager {
 //            // get this server's local listening address
 //            String localAddress = chatServer.getLocalListeningHostText();
 //
-//            if (newIdentity != null && newIdentity.equals(localAddress)) {
+//            if (incomingHost != null && incomingHost.equals(localAddress)) {
 //                System.out.println("[debug] connect to myself");
 //                peer.setSelfPeer(true);
 //            }
