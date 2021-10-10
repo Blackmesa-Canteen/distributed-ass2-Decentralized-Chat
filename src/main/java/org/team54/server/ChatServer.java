@@ -2,7 +2,6 @@ package org.team54.server;
 
 import com.alibaba.fastjson.JSONException;
 import com.alibaba.fastjson.JSONObject;
-import org.team54.messageBean.ShoutMessage;
 import org.team54.model.Peer;
 import org.team54.service.MessageServices;
 import org.team54.utils.CharsetConvertor;
@@ -186,7 +185,7 @@ public class ChatServer implements Runnable {
      */
     public void handleRequestCallback(Peer sourcePeer, String text) {
         // check peer livness, only handle living peer's request
-        if (neighborPeerManager.isPeerLivingByPeerId(sourcePeer.getId())) {
+        if (neighborPeerManager.isPeerLivingByPeerId(sourcePeer.getIdentity())) {
             System.out.println("[debug] get request: " + text);
             JSONObject requestDataObject = JSONObject.parseObject(text);
             if (requestDataObject == null) {
@@ -203,7 +202,7 @@ public class ChatServer implements Runnable {
                         throw new JSONException("Missing attributes");
                     }
 
-                    String relayMessage = MessageServices.genRelayMessage(sourcePeer.getId(), text);
+                    String relayMessage = MessageServices.genRelayMessage(sourcePeer.getIdentity(), text);
                     chatRoomManager.broadcastMessageInRoom(sourcePeer
                             , sourcePeer.getRoomId()
                             , relayMessage,
@@ -245,7 +244,7 @@ public class ChatServer implements Runnable {
                     sourcePeer.getPeerConnection().sendTextMsgToMe(responseMsg);
 
                     // TODO shout
-                    // shout请求, 给rootShout信息赋值公网身份, 然后继续转发
+                    // shout请求
                 } else if (requestType.equals(Constants.SHOUT_JSON_TYPE)) {
                     String content = requestDataObject.getString("content");
                     String rootIdentity = requestDataObject.getString("rootIdentity");
@@ -266,7 +265,7 @@ public class ChatServer implements Runnable {
                         shoutHashIdHistory.add(hashId);
                     }
 
-                    // 如果 rootIdentity 为"",说明该客户是发shout的root, 赋值公网identity
+                    // 如果 rootIdentity 为"",说明该客户是发shout的root, 赋值这个客户peer的公网identity在message上,然后转发
                     if (rootIdentity == null || "".equals(rootIdentity)) {
                         rootIdentity = sourcePeer.getPublicHostName() + ":" + sourcePeer.getOutgoingPort();
 

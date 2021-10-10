@@ -36,7 +36,7 @@ public class PeerConnection {
                 ));
 
             } catch (IOException e) {
-                System.out.println("err in sentTextMsgTo " + peer.getId());
+                System.out.println("err in sentTextMsgTo " + peer.getIdentity());
                 e.printStackTrace();
             }
         }

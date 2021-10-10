@@ -16,5 +16,6 @@ import org.team54.utils.Constants;
 @Builder
 @ToString
 public class QuitMessage {
+    @Builder.Default
     private String type = Constants.QUIT_JSON_TYPE;
 }

@@ -18,6 +18,7 @@ import java.util.List;
 @ToString
 public class RoomContentsMessage {
 
+    @Builder.Default
     private String type = Constants.ROOM_CONTENTS_JSON_TYPE;
     private String roomid;
     private List<String> identities;

@@ -15,6 +15,7 @@ import org.team54.utils.Constants;
 @Builder
 @ToString
 public class WhoMessage {
+    @Builder.Default
     private String type = Constants.WHO_JSON_TYPE;
     private String roomid;
 }

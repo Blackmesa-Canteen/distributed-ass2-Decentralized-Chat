@@ -15,8 +15,10 @@ import org.team54.utils.Constants;
 @Builder
 @ToString
 public class RoomChangeMessage {
+    @Builder.Default
     private String type = Constants.ROOM_CHANGE_JSON_TYPE;
     private String identity;
+    @Builder.Default
     private String former = "";
     private String roomid;
 }

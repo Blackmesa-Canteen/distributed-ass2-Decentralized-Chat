@@ -15,6 +15,8 @@ import org.team54.utils.Constants;
 @Builder
 @ToString
 public class JoinRoomMessage {
+    @Builder.Default
     private String type = Constants.JOIN_JSON_TYPE;
+    @Builder.Default
     private String roomid = "";
 }

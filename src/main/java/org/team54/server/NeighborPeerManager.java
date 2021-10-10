@@ -75,61 +75,64 @@ public class NeighborPeerManager {
 
     /**
      * in initial setup, the peer's identity's id's port is NOT listen port
-     * now change it to the listen port
-     * <p>
-     * After this, the peer will be accepted.
+     * we need to get listen port
      *
      * @param peer        peer
      * @param newIdentity new host text
      */
-    public void updatePeerIdentityIdPort(Peer peer, String newIdentity) {
+    public void updatePeerWithHostChange(Peer peer, String newIdentity, String incomingHashId) {
 
-        // TODO need a great fix
-        String originalPeerId = peer.getId();
         int listenPort = 0;
         String localHostString = "";
         if (newIdentity != null) {
-            System.out.println("[debug] newIdentity text received: " + newIdentity);
             listenPort = StringUtils.parsePortNumFromHostText(newIdentity);
             localHostString = StringUtils.parseHostStringFromHostText(newIdentity);
-            System.out.println("[debug]update peer to new port:" + listenPort);
+            System.out.println("[debug] newIdentity: " + newIdentity);
+            System.out.println("[debug] server got listen port: " + listenPort);
         }
 
         // newIdentity is private address,
         // so we use combination: peer original connection's hostString + newport
-        String newPeerId = StringUtils.parseHostStringFromHostText(originalPeerId)
-                + ":" + listenPort;
-        System.out.println("[debug]new peer port: " + newPeerId);
+//        String newPeerIdentity = publicHostString + ":" + listenPort;
+//        System.out.println("[debug]new peer port: " + newPeerIdentity);
 
-        // judge whether the peer is the local peer or not
-        if (chatServer != null) {
+        /* judge whether the peer is the local peer or not */
+//        if (chatServer != null) {
+//
+//            // get this server's local listening address
+//            String localAddress = chatServer.getLocalListeningHostText();
+//
+//            if (newIdentity != null && newIdentity.equals(localAddress)) {
+//                System.out.println("[debug] connect to myself");
+//                peer.setSelfPeer(true);
+//            }
+//        }
 
-            // get this server's local listening address
-            String localAddress = chatServer.getLocalListeningHostText();
-
-            if (newIdentity != null && newIdentity.equals(localAddress)) {
-                System.out.println("[debug] connect to myself");
-                peer.setSelfPeer(true);
-            }
+        /* judge whether the incoming peer is this local peer or not */
+        if (incomingHashId.equals(Constants.THIS_PEER_HASH_ID)) {
+            peer.setSelfPeer(true);
         }
 
-        // update hashmap and so on
-        synchronized (livingMemberPeers) {
-
-            Peer peerObj = livingMemberPeers.get(originalPeerId);
-            if (!livingMemberPeers.containsKey(newPeerId)) {
-                livingMemberPeers.put(newPeerId, peerObj);
-                livingMemberPeers.remove(originalPeerId);
-                // not temp id, then can be searched out
-                peer.setId(newPeerId);
-                peer.setListenPort(listenPort);
-                peer.setLocalHostName(localHostString);
-
-                peer.setGotListenPort(false);
-            } else {
-                System.out.println("[debug] update peer indentity failed, already connected");
-            }
-        }
+        // update peer info
+        peer.setListenPort(listenPort);
+        peer.setLocalHostName(localHostString);
+        peer.setGotListenPort(true);
+//        synchronized (livingMemberPeers) {
+//
+//            Peer peerObj = livingMemberPeers.get(originalPeerId);
+//            if (!livingMemberPeers.containsKey(newPeerId)) {
+//                livingMemberPeers.put(newPeerId, peerObj);
+//                livingMemberPeers.remove(originalPeerId);
+//                // not temp id, then can be searched out
+//                peer.setIdentity(newPeerId);
+//                peer.setListenPort(listenPort);
+//                peer.setLocalHostName(localHostString);
+//
+//                peer.setGotListenPort(true);
+//            } else {
+//                System.out.println("[debug] update peer indentity failed, already connected");
+//            }
+//        }
     }
 
     /**
@@ -143,21 +146,21 @@ public class NeighborPeerManager {
 
             // get socketChannel host info for peer id
 
-            /* !! ALERT : this is just a temp id! will be changed soon !!*/
+            /* public ip + outgoing port */
             InetSocketAddress remoteAddress = (InetSocketAddress) newSocketChannel.getRemoteAddress();
 
             // public host address + connection port, NOT listening port
 //            String hostText = remoteAddress.getHostString() + ":" + remoteAddress.getPort();
             String hostText = StringUtils.getHostTextFromInetSocketAddress(remoteAddress);
 
-            System.out.println("[debug] new Peer temp id: " + hostText);
+            System.out.println("[debug] new Peer identity: " + hostText);
 
             Peer peerInstance = Peer.builder()
-                    .id(hostText)
+                    .identity(hostText)
                     .originalConnectionHostText(hostText)
                     .formerRoomId("")
                     .roomId("")
-                    .isGotListenPort(true)
+                    .isGotListenPort(false)
                     .localHostName("")
                     .listenPort(Constants.NON_PORT_DESIGNATED)
                     .outgoingPort(StringUtils.parsePortNumFromHostText(hostText))
@@ -182,7 +185,7 @@ public class NeighborPeerManager {
                 return;
             }
 
-            // put the new peer in hashmap
+            // put the new member peer in hashmap
             // put、remove and clear need to get a lock
             synchronized (neighborMemberPeerMap) {
                 if (neighborMemberPeerMap.containsKey(newSocketChannel)) {
@@ -194,7 +197,7 @@ public class NeighborPeerManager {
             }
 
             synchronized (livingMemberPeers) {
-                livingMemberPeers.putIfAbsent(peerInstance.getId(), peerInstance);
+                livingMemberPeers.putIfAbsent(peerInstance.getIdentity(), peerInstance);
             }
 
             System.out.println("[debug]put new peer in neighbor");
@@ -270,7 +273,7 @@ public class NeighborPeerManager {
 
         // remove living peer record
         synchronized (livingMemberPeers) {
-            livingMemberPeers.remove(peer.getId());
+            livingMemberPeers.remove(peer.getIdentity());
         }
 
         // if the peer has joined a room, exit
@@ -281,7 +284,7 @@ public class NeighborPeerManager {
             // to make sure "When the client that is disconnecting receives
             // the RoomChange message, then it can close the connection."
             String roomChangeResponseMsg = MessageServices.genRoomChangeResponseMsg(
-                    peer.getId(),
+                    peer.getIdentity(),
                     "",
                     ""
             );
@@ -317,7 +320,7 @@ public class NeighborPeerManager {
 
             if (peer != null) {
                 synchronized (livingMemberPeers) {
-                    livingMemberPeers.remove(peer.getId());
+                    livingMemberPeers.remove(peer.getIdentity());
                 }
             }
 
@@ -351,7 +354,7 @@ public class NeighborPeerManager {
             Collection<Peer> values = neighborMemberPeerMap.values();
             for (Peer peer : values) {
 
-                // peer should have listenport, and not self, and exclude target peer
+                // peer should have listen port, and not self, and exclude target peer
                 if (peer != null
                         && peer.isGotListenPort()
                         && !peer.isSelfPeer()
@@ -362,7 +365,7 @@ public class NeighborPeerManager {
             }
         }
 
-        // add server peer that he is belongs to and is not himself
+        // add chatroom server peer that this peer is belongs to and is not this peer himself
         if (masterPeer != null && !masterPeer.isSelfPeer()) {
             res.add(masterPeer);
         }

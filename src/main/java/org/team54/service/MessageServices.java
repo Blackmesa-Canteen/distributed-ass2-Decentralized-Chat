@@ -6,6 +6,7 @@ import org.team54.model.Peer;
 import org.team54.model.Room;
 import org.team54.server.ChatRoomManager;
 import org.team54.server.NeighborPeerManager;
+import org.team54.utils.Constants;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -29,6 +30,7 @@ public class MessageServices {
     public static String genHostChangeRequestMessage(String host) {
         HostChangeMessage jsonObject = HostChangeMessage.builder()
                 .host(host)
+                .hashId(Constants.THIS_PEER_HASH_ID)
                 .build();
         return new Gson().toJson(jsonObject) + "\n";
     }
@@ -84,7 +86,7 @@ public class MessageServices {
 
         if (room != null) {
             for (Peer peer : room.getPeers()) {
-                identities.add(peer.getId());
+                identities.add(peer.getIdentity());
             }
         }
 

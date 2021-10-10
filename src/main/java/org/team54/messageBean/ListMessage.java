@@ -15,5 +15,6 @@ import org.team54.utils.Constants;
 @Builder
 @ToString
 public class ListMessage {
+    @Builder.Default
     private String type = Constants.LIST_JSON_TYPE;
 }

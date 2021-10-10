@@ -132,100 +132,101 @@ public class ChatRoomManager {
 
         boolean isSuccessful = false;
 
-        // make sure the peer's id is updated by hostchange
-        if (!peer.isGotListenPort()) {
-            // handle "" empty room, just remove the peer from current room
-            if ("".equals(roomId)) {
-                synchronized (liveRoomMap) {
-                    previousRoomId = peer.getRoomId();
-                    Room room = liveRoomMap.get(previousRoomId);
+//        // make sure the peer's id is updated by hostchange
+//        if (peer.isGotListenPort()) {
 
-                    if (room != null) {
-                        // notify client leave the room
-                        if (room.getPeers().contains(peer)) {
-                            isSuccessful = true;
+        // handle "" empty room, just remove the peer from current room
+        if ("".equals(roomId)) {
+            synchronized (liveRoomMap) {
+                previousRoomId = peer.getRoomId();
+                Room room = liveRoomMap.get(previousRoomId);
 
-                            broadcastMessageInRoom(peer,
-                                    previousRoomId,
-                                    MessageServices.genRoomChangeResponseMsg(
-                                            peer.getId(),
-                                            previousRoomId,
-                                            roomId),
-                                    null
-                            );
+                if (room != null) {
+                    // notify client leave the room
+                    if (room.getPeers().contains(peer)) {
+                        isSuccessful = true;
 
-                            room.getPeers().remove(peer);
+                        broadcastMessageInRoom(peer,
+                                previousRoomId,
+                                MessageServices.genRoomChangeResponseMsg(
+                                        peer.getIdentity(),
+                                        previousRoomId,
+                                        roomId),
+                                null
+                        );
 
-                            // update current peer info
-                            peer.setFormerRoomId(previousRoomId);
-                            peer.setRoomId("");
-                        }
+                        room.getPeers().remove(peer);
+
+                        // update current peer info
+                        peer.setFormerRoomId(previousRoomId);
+                        peer.setRoomId("");
                     }
                 }
+            }
 
-            } else {
-                // if target room is not ""
-                // lock to prevent join a deleted null room
-                synchronized (liveRoomMap) {
-                    targetRoom = liveRoomMap.get(roomId);
-                    if (targetRoom != null) {
-                        // if target Room exists
-                        // check peer existence
-                        if (!targetRoom.getPeers().contains(peer)) {
-                            // if peer not joined the room
+        } else {
+            // if target room is not ""
+            // lock to prevent join a deleted null room
+            synchronized (liveRoomMap) {
+                targetRoom = liveRoomMap.get(roomId);
+                if (targetRoom != null) {
+                    // if target Room exists
+                    // check peer existence
+                    if (!targetRoom.getPeers().contains(peer)) {
+                        // if peer not joined the room
 
-                            // get prev roomId of peer
-                            previousRoomId = peer.getRoomId();
+                        // get prev roomId of peer
+                        previousRoomId = peer.getRoomId();
 
-                            // add peer to new room
-                            targetRoom.getPeers().add(peer);
+                        // add peer to new room
+                        targetRoom.getPeers().add(peer);
 
-                            // rm peer from prev room
-                            if (previousRoomId != null) {
-                                if (!"".equals(previousRoomId)) {
-                                    Room prevRoom = liveRoomMap.get(previousRoomId);
+                        // rm peer from prev room
+                        if (previousRoomId != null) {
+                            if (!"".equals(previousRoomId)) {
+                                Room prevRoom = liveRoomMap.get(previousRoomId);
 
-                                    // notify old room, except peer itself (prevent send roomchage twice to this peer)
-                                    broadcastMessageInRoom(
-                                            peer,
-                                            previousRoomId,
-                                            MessageServices.genRoomChangeResponseMsg(
-                                                    peer.getId(),
-                                                    previousRoomId,
-                                                    roomId),
-                                            peer
-                                    );
-                                    prevRoom.getPeers().remove(peer);
-                                }
+                                // notify old room, except peer itself (prevent send roomchage twice to this peer)
+                                broadcastMessageInRoom(
+                                        peer,
+                                        previousRoomId,
+                                        MessageServices.genRoomChangeResponseMsg(
+                                                peer.getIdentity(),
+                                                previousRoomId,
+                                                roomId),
+                                        peer
+                                );
+                                prevRoom.getPeers().remove(peer);
                             }
-
-                            // update current peer info
-                            peer.setFormerRoomId(previousRoomId);
-                            peer.setRoomId(roomId);
-
-                            // notify new room (only the user is in the room, can notify with this method)
-                            broadcastMessageInRoom(
-                                    peer,
-                                    roomId,
-                                    MessageServices.genRoomChangeResponseMsg(
-                                            peer.getId(),
-                                            previousRoomId,
-                                            roomId),
-                                    null
-                            );
-
-                            isSuccessful = true;
                         }
+
+                        // update current peer info
+                        peer.setFormerRoomId(previousRoomId);
+                        peer.setRoomId(roomId);
+
+                        // notify new room (only the user is in the room, can notify with this method)
+                        broadcastMessageInRoom(
+                                peer,
+                                roomId,
+                                MessageServices.genRoomChangeResponseMsg(
+                                        peer.getIdentity(),
+                                        previousRoomId,
+                                        roomId),
+                                null
+                        );
+
+                        isSuccessful = true;
                     }
                 }
             }
         }
+//        }
 
         if (!isSuccessful) {
 
             // only send unchanged roomchange msg to that peer
             peer.getPeerConnection().sendTextMsgToMe(
-                    MessageServices.genRoomChangeResponseMsg(peer.getId(), peer.getRoomId(), peer.getRoomId()));
+                    MessageServices.genRoomChangeResponseMsg(peer.getIdentity(), peer.getRoomId(), peer.getRoomId()));
         }
     }
 
@@ -262,7 +263,7 @@ public class ChatRoomManager {
      */
     public void broadcastMessageInAllRoom(String message) {
         synchronized (liveRoomMap) {
-            for(Room room : liveRoomMap.values()) {
+            for (Room room : liveRoomMap.values()) {
                 // make sure room is not null, and the peer is in this room
                 if (room != null) {
                     ArrayList<Peer> peers = room.getPeers();
@@ -301,7 +302,7 @@ public class ChatRoomManager {
                             targetPeer,
                             roomId,
                             MessageServices.genRoomChangeResponseMsg(
-                                    targetPeer.getId(),
+                                    targetPeer.getIdentity(),
                                     targetPeer.getRoomId(),
                                     ""
                             ),
@@ -373,7 +374,7 @@ public class ChatRoomManager {
                         // send message to this peer that he is quit to "" room
                         peer.getPeerConnection().sendTextMsgToMe(
                                 MessageServices.genRoomChangeResponseMsg(
-                                        peer.getId(),
+                                        peer.getIdentity(),
                                         roomId,
                                         ""
                                 )

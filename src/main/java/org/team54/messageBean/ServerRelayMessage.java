@@ -17,6 +17,7 @@ import org.team54.utils.Constants;
 @Builder
 @ToString
 public class ServerRelayMessage {
+    @Builder.Default
     private String type = Constants.MESSAGE_JSON_TYPE;
     private String identity;
     private String content;

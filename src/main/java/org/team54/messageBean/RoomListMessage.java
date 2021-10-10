@@ -17,6 +17,7 @@ import java.util.List;
 @Builder
 @ToString
 public class RoomListMessage {
+    @Builder.Default
     private String type = Constants.ROOM_LIST_JSON_TYPE;
     private List<RoomDTO> rooms;
 }

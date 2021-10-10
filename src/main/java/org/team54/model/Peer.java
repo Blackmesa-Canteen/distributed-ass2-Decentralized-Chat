@@ -16,11 +16,19 @@ import lombok.*;
 public class Peer {
 
     /** id string: 192.168.1.10:3000 */
-    private volatile String id;
+    private volatile String identity;
+    @Builder.Default
     private String originalConnectionHostText = "";
 
+    /** hashId when a peer is created, and will be trensferred to neiborpeer in hostchange message
+     * can be used to detect whether the Peer is this peer self or not */
+    @Builder.Default
+    private String hashId = "";
+
     /** use volatile to ensure threads get updated roomId */
+    @Builder.Default
     private volatile String formerRoomId = "";
+    @Builder.Default
     private volatile String roomId = "";
 
     private PeerConnection peerConnection;
@@ -32,11 +40,13 @@ public class Peer {
     /** 这用来存从client发出的hostchange内容里的 123.123.123.123:4444 的 123.123.123.123, 因为本机自己的peer得不到公网ip所以hostchange里只能够得到本地ip */
     private String localHostName;
     /** listening port, 这用来存从client发出的hostchange内容里的 123.123.123.123:4444 的 4444 */
-    private int listenPort;
+    private volatile int listenPort;
 
     /** whether this peer is the peer himself, or is a remote peer */
-    private volatile boolean isSelfPeer;
+    @Builder.Default
+    private volatile boolean isSelfPeer = false;
 
     /** at first connection, the id's port is not accept port, need to be altered in hostchange packet */
-    private volatile boolean isGotListenPort = true;
+    @Builder.Default
+    private volatile boolean isGotListenPort = false;
 }

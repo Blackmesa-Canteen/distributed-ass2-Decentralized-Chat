@@ -17,6 +17,7 @@ import java.util.List;
 @Builder
 @ToString
 public class ServerRespondNeighborsMessage {
+    @Builder.Default
     private String type = Constants.LIST_NEIGHBORS_RESPOND_JSON_TYPE;
     private List<String> neighbors;
 }

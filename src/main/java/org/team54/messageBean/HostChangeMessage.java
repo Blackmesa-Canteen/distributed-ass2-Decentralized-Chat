@@ -15,6 +15,9 @@ import org.team54.utils.Constants;
 @Builder
 @ToString
 public class HostChangeMessage {
+    @Builder.Default
     private String type = Constants.HOST_CHANGE_JSON_TYPE;
     private String host;
+
+    private String hashId;
 }
