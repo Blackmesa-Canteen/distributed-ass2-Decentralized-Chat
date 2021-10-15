@@ -2,6 +2,9 @@ package org.team54.app;
 
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
+import org.team54.client.ClientWorker;
+import org.team54.client.NIOClient;
+import org.team54.client.ScannerWorker;
 import org.team54.server.ChatServer;
 import org.team54.server.MessageQueueWorker;
 import org.team54.utils.Constants;
@@ -19,11 +22,16 @@ public class ChatPeer {
 
     /** server listen port: -p */
     private static int serverListenPort = 4444;
+    // a socketchannel can connect to seversocketchannel without any local port bond
+    // when clientBindPort = -1, NIOClient will connect to server directly with out any local port bond
+    // in such case, the localport will be assigned randomly
+    private static int clientBindPort = Constants.NON_PORT_DESIGNATED;
 
     /** client connect port: -i, if not designated in argument, use OS random port !! */
-    private static int clientPort = Constants.NON_PORT_DESIGNATED;
+//    private static int clientPort = Constants.NON_PORT_DESIGNATED;
 
     private static ChatServer server;
+    private static NIOClient client;
 
     public static void main(String[] args) throws IOException {
 
@@ -35,7 +43,29 @@ public class ChatPeer {
         server = new ChatServer(null, serverListenPort, MQWorker);
         new Thread(server).start();
 
+
         // init client logic
+        /**
+         * client has three thread
+         *
+         * scannerWorker thread: read user input, encode user input and send to server
+         * client thread: handle connection, NIO selecter etc. Will pass the received message
+         *                from server to clientWorker to avoid block.
+         * clientWorker thread: do the mission passed by client thread
+         *
+         * Both the client thread and clientWoker thread will not start until the scannerWorker receives
+         * the #connect command
+         */
+        ClientWorker clientWorker = new ClientWorker();
+        //open a new thread for getting userinput and write
+        ScannerWorker scannerWorker = new ScannerWorker(null,null,clientWorker);
+        // init client
+        client = new NIOClient(null,serverListenPort, clientBindPort, clientWorker,scannerWorker);
+        // set client to scannnerWorker
+        scannerWorker.setClient(client);
+        new Thread(scannerWorker).start();
+        // the client thread and the worker thread need to be started after #connet command
+        // the scannerWorker will read the #connect and starts them.
 
     }
 
@@ -50,7 +80,7 @@ public class ChatPeer {
 
                 // no arges, default client connection port will be this
                 // need to allocate randomly when create connection
-                clientPort = Constants.NON_PORT_DESIGNATED;
+                clientBindPort = Constants.NON_PORT_DESIGNATED;
 
             } else {
                 cmdLineParser.parseArgument(args);
@@ -72,7 +102,7 @@ public class ChatPeer {
                 }
 
                 serverListenPort = (int) option.listenPort;
-                clientPort = (int) option.clientPort;
+                clientBindPort = (int) option.clientPort;
             }
 
         } catch (CmdLineException e) {
@@ -96,10 +126,10 @@ public class ChatPeer {
     }
 
     public static int getClientPort() {
-        return clientPort;
+        return clientBindPort;
     }
 
     public static void setClientPort(int clientPort) {
-        ChatPeer.clientPort = clientPort;
+        ChatPeer.clientBindPort = clientPort;
     }
 }
