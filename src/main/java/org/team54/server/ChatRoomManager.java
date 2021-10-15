@@ -24,7 +24,7 @@ public class ChatRoomManager {
      */
     private final ConcurrentHashMap<String, Room> liveRoomMap;
 
-    private final NeighborPeerManager neighborPeerManager;
+    private NeighborPeerManager neighborPeerManager;
 
     public static synchronized ChatRoomManager getInstance() {
         if (instance == null) {
@@ -36,7 +36,10 @@ public class ChatRoomManager {
 
     private ChatRoomManager() {
         this.liveRoomMap = new ConcurrentHashMap<>();
-        this.neighborPeerManager = NeighborPeerManager.getInstance();
+    }
+
+    public void setNeighborPeerManager(NeighborPeerManager neighborPeerManager) {
+        this.neighborPeerManager = neighborPeerManager;
     }
 
     /**

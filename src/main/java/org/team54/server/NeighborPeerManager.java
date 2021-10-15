@@ -21,7 +21,6 @@ import java.util.concurrent.ConcurrentHashMap;
 public class NeighborPeerManager {
 
     private static NeighborPeerManager instance;
-    private ChatServer chatServer;
 
     /** TODO this is master peer, 就是当这个本Peer A以成员身份加入Peer B的聊天室, masterPeer就用来保存下上游Peer B的地址的文本信息,
      *  主要为了获得到本peer加入的房间server的域名文本信息,这样list neighbor就能正常显示上游的peer节点的地址了 */
@@ -36,7 +35,7 @@ public class NeighborPeerManager {
     private final HashSet<String> memberPeerConnectionTextBlackList;
     private final ConcurrentHashMap<String, Peer> livingMemberPeers;
 
-    private final ChatRoomManager chatRoomManager;
+    private ChatRoomManager chatRoomManager;
 
     public static synchronized NeighborPeerManager getInstance() {
         if (instance == null) {
@@ -49,12 +48,11 @@ public class NeighborPeerManager {
     private NeighborPeerManager() {
         neighborMemberPeerMap = new ConcurrentHashMap<>();
         memberPeerConnectionTextBlackList = new HashSet<>();
-        chatRoomManager = ChatRoomManager.getInstance();
         livingMemberPeers = new ConcurrentHashMap<>();
     }
 
-    public void setChatServer(ChatServer chatServer) {
-        this.chatServer = chatServer;
+    public void setChatRoomManager(ChatRoomManager chatRoomManager) {
+        this.chatRoomManager = chatRoomManager;
     }
 
     /**
