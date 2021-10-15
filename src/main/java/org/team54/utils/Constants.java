@@ -32,4 +32,5 @@ public class Constants {
     public static final String LIST_JSON_TYPE = "list";
     public static final String MESSAGE_JSON_TYPE = "message";
     public static final String QUIT_JSON_TYPE = "quit";
+    public static final String Connect_TYPE = "connect";
 }
