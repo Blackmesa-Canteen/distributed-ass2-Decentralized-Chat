@@ -70,7 +70,6 @@ public class ChatServer implements Runnable {
         this.MQWorker = MQWorker;
         this.neighborPeerManager = NeighborPeerManager.getInstance();
         // attach server to this manager
-        this.neighborPeerManager.setChatServer(this);
         this.chatRoomManager = ChatRoomManager.getInstance();
     }
 

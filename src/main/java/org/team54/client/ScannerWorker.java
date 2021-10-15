@@ -1,5 +1,6 @@
 package org.team54.client;
 
+import org.team54.app.ChatPeer;
 import org.team54.messageBean.*;
 import org.team54.service.MessageServices;
 import org.team54.utils.Constants;
@@ -79,13 +80,14 @@ public class ScannerWorker implements Runnable{
         return(message.substring(0,1).equals("#"));
     }
 
+
     // handle the #connect commad
     public void handleConnect(String[] arr){
         if(arr.length == 1){
             System.out.println("missing connect parameter");
         }else if(arr.length == 2){
             try {
-                // if the client has already connect to a server, return immediately
+                // if the client has already connected to a server, return immediately
                 if(client.connectNum == 1){
                     System.out.println("already connect to " + client.getServer());
                     return;
@@ -100,28 +102,23 @@ public class ScannerWorker implements Runnable{
                 int port = Integer.parseInt(addressArr[1]);
                 this.client.setInetAddress(address);
                 this.client.setPort(port);
+                this.client.setLocalport(-1);
                 // if the command is connect, starts the client thread and the clientworker thread
-                this.client.startInit();
+                this.client.startConn(client.getLocalport(),client.getPort(),client.getAddress());
                 workerThread = new Thread(clientWorker);
                 clientThread = new Thread(client);
-                if(!workerThread.isAlive()){
-                    workerThread.start();
-                }
-                if(!clientThread.isAlive()){
-                    clientThread.start();
-                }
+                if(!workerThread.isAlive()){workerThread.start();}
+                if(!clientThread.isAlive()){clientThread.start();}
                 // send identity to server
                 String message = MessageServices.genHostChangeRequestMessage(client.getIdentity()[0]);
-                //String message = genHostChangeMessage(client.getIdentity()[0]);
-                sendMessage(socketChannel,message);
-                //socketChannel.write(ByteBuffer.wrap(message.getBytes()));
+                this.client.Write(message);
             } catch (IOException | ArrayIndexOutOfBoundsException e){
                 System.out.println("bad #connect command");
             }
 
         }else if(arr.length == 3){
             try {
-                // if the client has already connect to a server, return immediately
+                // if the client has already connected to a server, return immediately
                 if(client.connectNum == 1){
                     System.out.println("already connect to " + client.getServer());
                     return;
@@ -134,25 +131,20 @@ public class ScannerWorker implements Runnable{
                 InetAddress address = InetAddress.getByName(addressArr[0]);
                 int port = Integer.parseInt(addressArr[1]);
                 int localport = Integer.parseInt(arr[2]);
+
                 // pass variables to client
                 this.client.setInetAddress(address);
                 this.client.setPort(port);
                 this.client.setLocalport(localport);
-                // if the command is connect, starts the client and client worker thread
-                //if(client.selector)
-                this.client.startInit();
+                // if the command is #connect, starts the client and client worker thread
+                this.client.startConn(client.getLocalport(),client.getPort(),client.getAddress());
                 workerThread = new Thread(clientWorker);
                 clientThread = new Thread(client);
-                if(!workerThread.isAlive()){
-                    workerThread.start();
-                }
-                if(!clientThread.isAlive()){
-                    clientThread.start();
-                }
+                if(!workerThread.isAlive()){workerThread.start();}
+                if(!clientThread.isAlive()){clientThread.start();}
                 // send identity to server
                 String message = MessageServices.genHostChangeRequestMessage(client.getIdentity()[0]);
-                //String message = MessageServices.genHostChangeMessage(client.getIdentity()[0]);
-                sendMessage(socketChannel,message);
+                this.client.Write(message);
             } catch (IOException | ArrayIndexOutOfBoundsException e){
                 System.out.println("bad #connect command");
             }
@@ -160,53 +152,51 @@ public class ScannerWorker implements Runnable{
     }
 
     public void handleQuit(){
-        try{
-            clientWorker.alive.set(false);
-            client.alive.set(false);
-            //socketChannel.socket().close();
-            //socketChannel.close();
-            //client.closeSelector();
-            client.stop();
-            workerThread.interrupt();
-            clientThread.interrupt();
-            //System.out.println("After quit workerthread is interrupted "+workerThread.isInterrupted());
-            //System.out.println("Afete quit clientthread is interrupted " + clientThread.isInterrupted());
-        }catch(IOException e){
-            System.out.println(e.getMessage());
-            System.out.println("close fail, try again later");
+        if(this.client.alive.get()==false){
+            System.out.println("not connected yet, try #connect command");
+        }else{
+            try{
+                clientWorker.alive.set(false);
+                client.alive.set(false);
+                client.stop();
+                workerThread.interrupt();
+                clientThread.interrupt();
+                // need to set ClientBind port to -1 for next connection
+                ChatPeer.setClientPort(-1);
+            }catch(IOException e){
+                System.out.println(e.getMessage());
+                System.out.println("close fail, try again later");
+            }
         }
-
     }
 
     // send user's common message to server
     private void handleMessage(String message){
         try{
-            //ByteBuffer.wrap(data)
-            if(socketChannel==null){
+            if(!this.client.getSocketChannel().isConnected()){
                 // sockets not connected
                 System.out.println("not connected yet. try #connect operation");
             }else{
                 String relayMessage = MessageServices.genRelayMessage(client.getIdentity()[0],message);
-                //String relayMessage = genRelayMessage(client.getIdentity()[0],message);
-                sendMessage(socketChannel,relayMessage);
+                this.client.Write(relayMessage);
             }
         }catch(IOException e){
-
+            System.out.println("send message fails, try again later");
         }
     }
 
-    private void sendMessage(SocketChannel socketChannel, String message) throws IOException {
-        writeBuffer.clear();
-        writeBuffer.put(message.getBytes(StandardCharsets.UTF_8));
-        writeBuffer.flip();
-        socketChannel.write(writeBuffer);
-    }
+//    private void sendMessage(SocketChannel socketChannel, String message) throws IOException {
+//        writeBuffer.clear();
+//        writeBuffer.put(message.getBytes(StandardCharsets.UTF_8));
+//        writeBuffer.flip();
+//        socketChannel.write(writeBuffer);
+//    }
 
-    public static String genQuitMessage(String host){
-        QuitMessage jsonObject = QuitMessage.builder()
-                .build();
-        return new Gson().toJson(jsonObject) + "\n";
-    }
+//    public static String genQuitMessage(String host){
+//        QuitMessage jsonObject = QuitMessage.builder()
+//                .build();
+//        return new Gson().toJson(jsonObject) + "\n";
+//    }
 
 
     // JSONObject requestDataObject = JSONObject.parseObject(text);

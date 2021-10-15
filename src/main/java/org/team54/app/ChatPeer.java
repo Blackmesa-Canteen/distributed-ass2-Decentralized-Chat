@@ -5,8 +5,10 @@ import org.kohsuke.args4j.CmdLineParser;
 import org.team54.client.ClientWorker;
 import org.team54.client.NIOClient;
 import org.team54.client.ScannerWorker;
+import org.team54.server.ChatRoomManager;
 import org.team54.server.ChatServer;
 import org.team54.server.MessageQueueWorker;
+import org.team54.server.NeighborPeerManager;
 import org.team54.utils.Constants;
 import org.team54.utils.StringUtils;
 
@@ -33,6 +35,9 @@ public class ChatPeer {
     private static ChatServer server;
     private static NIOClient client;
 
+    private static ChatRoomManager chatRoomManager;
+    private static NeighborPeerManager neighborPeerManager;
+
     public static void main(String[] args) throws IOException {
 
         // handle args
@@ -40,6 +45,13 @@ public class ChatPeer {
 
         // init server listening logic
         MessageQueueWorker MQWorker = new MessageQueueWorker();
+
+        // init server-used managers
+        chatRoomManager = ChatRoomManager.getInstance();
+        neighborPeerManager = NeighborPeerManager.getInstance();
+        chatRoomManager.setNeighborPeerManager(neighborPeerManager);
+        neighborPeerManager.setChatRoomManager(chatRoomManager);
+
         server = new ChatServer(null, serverListenPort, MQWorker);
         new Thread(server).start();
 
