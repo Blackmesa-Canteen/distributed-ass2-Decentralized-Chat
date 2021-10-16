@@ -21,7 +21,7 @@ import java.nio.channels.SocketChannel;
 @AllArgsConstructor
 @NoArgsConstructor
 public class PeerConnection {
-    private Peer peer;
+    private String peerId;
     private SocketChannel socketChannel;
 
     /**
@@ -36,7 +36,7 @@ public class PeerConnection {
                 ));
 
             } catch (IOException e) {
-                System.out.println("err in sentTextMsgTo " + peer.getIdentity());
+                System.out.println("err in sentTextMsgTo " + peerId);
                 e.printStackTrace();
             }
         }

@@ -166,7 +166,7 @@ public class NeighborPeerManager {
                     .build();
 
             PeerConnection connection = PeerConnection.builder()
-                    .peer(peerInstance)
+                    .peerId(hostText)
                     .socketChannel(newSocketChannel)
                     .build();
 
