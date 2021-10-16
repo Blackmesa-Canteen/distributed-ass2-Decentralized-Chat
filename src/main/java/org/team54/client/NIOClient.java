@@ -2,6 +2,7 @@ package org.team54.client;
 
 
 import org.team54.app.ChatPeer;
+import org.team54.model.Peer;
 import org.team54.utils.Constants;
 
 import java.io.IOException;
@@ -18,23 +19,21 @@ public class NIOClient implements Runnable{
     // record the number of connect the client established
     // connectNum should in [0,1], cannot connect to more than 1 server
     public int connectNum = 0;
-    private InetAddress address;
-    private int localport;
-    private int port;
     private ClientWorker worker;
     private ScannerWorker scannerWorker;
+    private Peer localPeer;
     private SocketChannel socketChannel;
     private ByteBuffer writeBuffer = ByteBuffer.allocate(2048);
     private ByteBuffer readBuffer = ByteBuffer.allocate(2048);
 
 
-    public NIOClient(InetAddress address, int port, int localport, ClientWorker worker, ScannerWorker scannerWorker) throws IOException {
-        this.address = address;
-        this.port = port;
+    public NIOClient(ClientWorker worker, ScannerWorker scannerWorker, Peer localPeer) throws IOException {
+
         //this.selector = initSelector();
         this.worker = worker;
         this.scannerWorker=scannerWorker;
-        this.localport = localport;
+
+        this.localPeer = localPeer;
     }
 
 
@@ -54,11 +53,19 @@ public class NIOClient implements Runnable{
     }
 
     public void stop() throws IOException{
+        if(!this.socketChannel.isConnected()){
+            System.out.println("not connected yet");
+            return;
+        }
         alive.set(false);
         socketChannel.close();
         // disconnect, connectNum -1
         connectNum -= 1;
+        // need to set ClientBind port to -1 for next connection
+        ChatPeer.setClientPort(-1);
+        localPeer.setOutgoingPort(-1);
     }
+
 
     public SocketChannel startConn(int localport, int port, InetAddress address) throws IOException{
         // init a socketchannel and set to NIO mode
@@ -72,6 +79,7 @@ public class NIOClient implements Runnable{
             // let the bond port can be used in TIME_WAIT status after disconnect
             socketChannel.setOption(StandardSocketOptions.SO_REUSEADDR, true);
             socketChannel.bind(localaddress);
+
         }
 
         // server's address, address+port e.g. 127.0.0.1:1234,
@@ -79,15 +87,36 @@ public class NIOClient implements Runnable{
         //connect to sever, connectNum +1
         socketChannel.connect(isa);
         socketChannel.finishConnect();
-        System.out.println("[debug] finish connect");
-        connectNum += 1;
+
+
         this.socketChannel = socketChannel;
 
+        if(socketChannel.isConnected()){
+            // set changes to localPeer
+            localPeer.setOutgoingPort(socketChannel.socket().getLocalPort());
+            localPeer.setLocalHostName(address.toString());
+            localPeer.setIdentity(socketChannel.getLocalAddress().toString().replace("/",""));
+            localPeer.setIdentity(localPeer.getLocalHostName()+":"+localPeer.getListenPort());
+            System.out.println("[debug] localhostName : " + localPeer.getLocalHostName());
+            System.out.println("[debug] outgoingPort : " + localPeer.getOutgoingPort());
+            System.out.println("[debug] listeningPort : " + localPeer.getListenPort());
+            System.out.println("[debug] identity : " + localPeer.getIdentity());
+            // record the success connection
+            connectNum += 1;
+        }else{
+            System.out.println("connect fails, maybe bad server address");
+        }
+
+        System.out.println("[debug] finish connect");
         return socketChannel;
     }
 
 
     public void Write(SocketChannel socketChannel,String message) throws IOException{
+        if(!this.socketChannel.isConnected()){
+            System.out.println("not connected yet");
+            return;
+        }
         writeBuffer.clear();
         writeBuffer.put(message.getBytes(StandardCharsets.UTF_8));
         writeBuffer.flip();
@@ -96,6 +125,10 @@ public class NIOClient implements Runnable{
 
     // overload Write function, if no socketChannel is given, use default socketchannel
     public void Write(String message) throws IOException{
+        if(!this.socketChannel.isConnected()){
+            System.out.println("not connected yet");
+            return;
+        }
         writeBuffer.clear();
         writeBuffer.put(message.getBytes(StandardCharsets.UTF_8));
         writeBuffer.flip();
@@ -109,6 +142,10 @@ public class NIOClient implements Runnable{
      * @throws IOException
      */
     private void Read(SocketChannel socketChannel) throws IOException{
+        if(!socketChannel.isConnected()){
+            //System.out.println("not connected yet");
+            return;
+        }
         readBuffer.clear();
         //System.out.println("connected " +socketChannel.isConnected());
         // get the length of data in readbuffer
@@ -128,43 +165,15 @@ public class NIOClient implements Runnable{
 
     }
 
-    public void setSocketChannel(SocketChannel socketChannel){
-        this.socketChannel = socketChannel;
+    public String getServer(){
+        try{
+            return this.socketChannel.getRemoteAddress().toString();
+        }catch (IOException e){
+            e.printStackTrace();
+        }
+        return null;
     }
 
-    public void setInetAddress(InetAddress address){
-        this.address = address;
-    }
-
-    public void setLocalport(int localport){
-        this.localport = localport;
-    }
-
-    public void setPort(int port){
-        this.port = port;
-    }
-
-    public InetSocketAddress getServer(){
-        InetSocketAddress isa = new InetSocketAddress(address,port);
-        return isa;
-    }
-
-    public int getLocalport(){
-        return this.localport;
-    }
-
-    // get server's port
-    public int getPort(){
-        return this.port;
-    }
-
-    public SocketChannel getSocketChannel(){
-        return this.socketChannel;
-    }
-
-    public InetAddress getAddress(){
-        return this.address;
-    }
 
     /**
      * arr to store identity
@@ -174,8 +183,11 @@ public class NIOClient implements Runnable{
      */
     public String[] getIdentity(){
         String[] arr = {"",""};
-        String identity = address.toString()+":"+ ChatPeer.getServerListenPort();
-        String hashID = Constants.THIS_PEER_HASH_ID;
+        String identity = localPeer.getIdentity();
+        String hashID = localPeer.getHashId();
+        //String identity = address.toString()+":"+ ChatPeer.getServerListenPort();
+        //String hashID = Constants.THIS_PEER_HASH_ID;
+        System.out.println("[debug] in client, getIdnetity, identity: " + identity + " hashID: " + hashID);
         arr[0] = identity;
         arr[1] = hashID;
         return arr;
