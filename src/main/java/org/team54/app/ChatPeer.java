@@ -5,6 +5,7 @@ import org.kohsuke.args4j.CmdLineParser;
 import org.team54.client.ClientWorker;
 import org.team54.client.NIOClient;
 import org.team54.client.ScannerWorker;
+import org.team54.model.Peer;
 import org.team54.server.ChatRoomManager;
 import org.team54.server.ChatServer;
 import org.team54.server.MessageQueueWorker;
@@ -43,6 +44,13 @@ public class ChatPeer {
         // handle args
         handleArgs(args);
 
+        // init local Peer
+        Peer localPeer = Peer.builder()
+                .hashId(Constants.THIS_PEER_HASH_ID)
+                .listenPort(serverListenPort)
+                .isSelfPeer(true)
+                .build();
+
         // init server listening logic
         MessageQueueWorker MQWorker = new MessageQueueWorker();
 
@@ -70,9 +78,9 @@ public class ChatPeer {
          */
         ClientWorker clientWorker = new ClientWorker();
         //open a new thread for getting userinput and write
-        ScannerWorker scannerWorker = new ScannerWorker(null,null,clientWorker);
+        ScannerWorker scannerWorker = new ScannerWorker(null,null,clientWorker, localPeer);
         // init client
-        client = new NIOClient(null,serverListenPort, clientBindPort, clientWorker,scannerWorker);
+        client = new NIOClient( clientWorker,scannerWorker, localPeer);
         // set client to scannnerWorker
         scannerWorker.setClient(client);
         new Thread(scannerWorker).start();
