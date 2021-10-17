@@ -187,7 +187,7 @@ public class NeighborPeerManager {
             // put、remove and clear need to get a lock
             synchronized (neighborMemberPeerMap) {
                 if (neighborMemberPeerMap.containsKey(newSocketChannel)) {
-                    System.out.println("[debug]please don't connect for twice.");
+                    System.out.println("[debug] please don't connect for twice.");
                     return;
                 } else {
                     neighborMemberPeerMap.put(newSocketChannel, peerInstance);
@@ -198,8 +198,8 @@ public class NeighborPeerManager {
                 livingMemberPeers.putIfAbsent(peerInstance.getIdentity(), peerInstance);
             }
 
-            System.out.println("[debug]put new peer in neighbor");
-            System.out.println("[debug]put new connection " + peerInstance.toString() + " in server living peers.");
+            System.out.println("[debug] server has put new peer in neighbor");
+            System.out.println("[debug] server has put new connection " + peerInstance.toString() + " in server living peers.");
 
         } catch (IOException e) {
             System.out.println("err in registerNewSocketChannelAsNeighbor");
