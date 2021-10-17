@@ -76,7 +76,7 @@ public class ChatPeer {
          * Both the client thread and clientWoker thread will not start until the scannerWorker receives
          * the #connect command
          */
-        ClientWorker clientWorker = new ClientWorker();
+        ClientWorker clientWorker = new ClientWorker(localPeer);
         //open a new thread for getting userinput and write
         ScannerWorker scannerWorker = new ScannerWorker(null,null,clientWorker, localPeer);
         // init client
