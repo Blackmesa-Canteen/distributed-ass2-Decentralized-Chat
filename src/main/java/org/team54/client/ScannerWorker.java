@@ -3,6 +3,7 @@ package org.team54.client;
 import org.team54.app.ChatPeer;
 import org.team54.messageBean.*;
 import org.team54.model.Peer;
+import org.team54.server.ChatRoomManager;
 import org.team54.service.MessageServices;
 import org.team54.utils.Constants;
 
@@ -19,6 +20,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import com.google.gson.Gson;
 import com.alibaba.fastjson.JSONException;
 import com.alibaba.fastjson.JSONObject;
+import org.team54.utils.StringUtils;
 
 public class ScannerWorker implements Runnable{
     public AtomicBoolean alive = new AtomicBoolean();
@@ -31,6 +33,8 @@ public class ScannerWorker implements Runnable{
     private Thread workerThread;
     private ByteBuffer writeBuffer = ByteBuffer.allocate(1024);
     private Peer localPeer;
+    private final ChatRoomManager chatRoomManager;
+
 
 
     public ScannerWorker( NIOClient client, SocketChannel socketChannel, ClientWorker clientWorker, Peer localPeer) throws IOException {
@@ -39,6 +43,7 @@ public class ScannerWorker implements Runnable{
         this.socketChannel = socketChannel;
         this.client = client;
         this.localPeer = localPeer;
+        this.chatRoomManager = ChatRoomManager.getInstance();
     }
     @Override
     public void run(){
@@ -53,8 +58,14 @@ public class ScannerWorker implements Runnable{
                     case Constants.Connect_TYPE:
                         handleConnect(arr);
                         break;
+                    case Constants.ROOM_CREATE_JSON_TYPE:
+                        handleCreateRoom(arr);
+                        break;
                     case Constants.JOIN_JSON_TYPE:
                         handleJoin(arr);
+                        break;
+                    case Constants.LIST_JSON_TYPE:
+                        handleListMessage(arr);
                         break;
                     case Constants.QUIT_JSON_TYPE:
                         handleQuit();;
@@ -112,7 +123,7 @@ public class ScannerWorker implements Runnable{
                 if(!clientThread.isAlive()){clientThread.start();}
                 // send identity to server
                 String message = MessageServices.genHostChangeRequestMessage(client.getIdentity()[0]);
-                System.out.println("[debug] host change message sendt is: " + message);
+                System.out.println("[debug client] host change message sendt is: " + message);
                 //message = "{\"type\":\"hostchange\",\"host\":\"127.0.0.1:4444\",\"hashId\":\"6u2I7chmC5F0Jd4h196G12X28l2L8P\"}";
                 this.client.Write(message);
                 // set changes to Peer
@@ -156,11 +167,13 @@ public class ScannerWorker implements Runnable{
             System.out.println("not connected yet, try #connect command");
         }else{
             try{
-                clientWorker.alive.set(false);
-                client.alive.set(false);
-                client.stop();
-                workerThread.interrupt();
-                clientThread.interrupt();
+                String quitMessaage = MessageServices.genQuitRequestMessage();
+                this.client.Write(quitMessaage);
+//                clientWorker.alive.set(false);
+//                client.alive.set(false);
+//                client.stop();
+//                workerThread.interrupt();
+//                clientThread.interrupt();
 
             }catch(IOException e){
                 System.out.println(e.getMessage());
@@ -175,7 +188,9 @@ public class ScannerWorker implements Runnable{
             if(this.client.alive.get()==false){
                 // sockets not connected
                 System.out.println("not connected yet. try #connect operation");
-            }else{
+            }else if("".equals(localPeer.getRoomId())){
+                System.out.println("please join a room to send message");
+            } else{
                 String relayMessage = MessageServices.genRelayMessage(client.getIdentity()[0],message);
                 this.client.Write(relayMessage);
             }
@@ -197,7 +212,7 @@ public class ScannerWorker implements Runnable{
                         System.out.println("Currently in " + localPeer.getRoomId());
                     }else{
                         String JRM = MessageServices.genJoinRoomRequestMessage(arr[1]);
-                        client.Write(JRM);
+                        this.client.Write(JRM);
                     }
                 }else{//other unconsidered situation
                     System.out.println("command error");
@@ -205,6 +220,34 @@ public class ScannerWorker implements Runnable{
             }
         }catch(IOException e){
             System.out.println("join room fails, try again later");
+        }
+    }
+
+    private void handleCreateRoom(String[] arr){
+        if(arr.length == 1){
+            System.out.println("invalid command, createroom option needs 1 argument");
+        }else if(arr.length == 2){
+            // check input validation first
+            if(StringUtils.isValidRoomId(arr[1])){
+                chatRoomManager.createNewEmptyRoom(arr[1]);
+            }else{
+                System.out.println("Invalid ROOMID");
+            }
+        }else{
+            System.out.println("command error");
+        }
+    }
+
+    private void handleListMessage(String[] arr){
+        if(arr.length==1){
+            String listMessage = MessageServices.genListRequestMessage(null);
+            try{
+                this.client.Write(listMessage);
+            }catch (IOException e){
+                System.out.println("fail to request for room list");
+            }
+        }else{
+            System.out.println("command error");
         }
     }
 

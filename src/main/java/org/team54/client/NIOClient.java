@@ -93,21 +93,23 @@ public class NIOClient implements Runnable{
 
         if(socketChannel.isConnected()){
             // set changes to localPeer
+            localPeer.setPublicHostName(socketChannel.getRemoteAddress().toString());
             localPeer.setOutgoingPort(socketChannel.socket().getLocalPort());
             localPeer.setLocalHostName(address.toString());
             localPeer.setIdentity(socketChannel.getLocalAddress().toString().replace("/",""));
             localPeer.setIdentity(localPeer.getLocalHostName()+":"+localPeer.getListenPort());
-            System.out.println("[debug] localhostName : " + localPeer.getLocalHostName());
-            System.out.println("[debug] outgoingPort : " + localPeer.getOutgoingPort());
-            System.out.println("[debug] listeningPort : " + localPeer.getListenPort());
-            System.out.println("[debug] identity : " + localPeer.getIdentity());
+            System.out.println("[debug client] publichostName : " + localPeer.getPublicHostName());
+            System.out.println("[debug client] localhostName : " + localPeer.getLocalHostName());
+            System.out.println("[debug client] outgoingPort : " + localPeer.getOutgoingPort());
+            System.out.println("[debug client] listeningPort : " + localPeer.getListenPort());
+            System.out.println("[debug client] identity : " + localPeer.getIdentity());
             // record the success connection
             connectNum += 1;
         }else{
             System.out.println("connect fails, maybe bad server address");
         }
 
-        System.out.println("[debug] finish connect");
+        System.out.println("[debug client] finish connect");
         return socketChannel;
     }
 
@@ -150,9 +152,9 @@ public class NIOClient implements Runnable{
         //System.out.println("connected " +socketChannel.isConnected());
         // get the length of data in readbuffer
         int readNum = socketChannel.read(readBuffer);
-        //System.out.println("[debug] here ");
+
         if(readNum == -1){
-            System.out.println("[debug] in client, bad read, client close");
+            System.out.println("[debug client] in client, bad read, client close");
             socketChannel.close();
 
             return;
@@ -187,7 +189,7 @@ public class NIOClient implements Runnable{
         String hashID = localPeer.getHashId();
         //String identity = address.toString()+":"+ ChatPeer.getServerListenPort();
         //String hashID = Constants.THIS_PEER_HASH_ID;
-        System.out.println("[debug] in client, getIdnetity, identity: " + identity + " hashID: " + hashID);
+        System.out.println("[debug client] in client, getIdnetity, identity: " + identity + " hashID: " + hashID);
         arr[0] = identity;
         arr[1] = hashID;
         return arr;
