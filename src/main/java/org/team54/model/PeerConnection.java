@@ -31,13 +31,10 @@ public class PeerConnection {
     public void sendTextMsgToMe(String text) {
         if (socketChannel != null) {
             try {
-                if (socketChannel.isConnected()) {
-                    socketChannel.write(CharsetConvertor.encode(
-                            CharBuffer.wrap(text)
-                    ));
-                } else {
-                    System.out.println(peerId + " has been disconnected, send message failed: " + text);
-                }
+                socketChannel.write(CharsetConvertor.encode(
+                        CharBuffer.wrap(text)
+                ));
+
             } catch (IOException e) {
                 System.out.println("err in sentTextMsgTo " + peerId);
                 e.printStackTrace();

@@ -49,17 +49,32 @@ public class ScannerWorker implements Runnable{
     public void run(){
         alive.set(true);
         while(alive.get()){
-            System.out.print("[input] in scannerworker ready to get input>>  ");
+            if("".equals(this.localPeer.getRoomId()) && this.localPeer.getServerSideIdentity() == null){
+                System.out.printf(">");
+            }else{
+                System.out.printf("[%s] %s>", this.localPeer.getRoomId(), this.localPeer.getServerSideIdentity());
+            }
+
             waitingInput.set(true);
             String message = scanner.nextLine();
+            if("".equals(message)){continue;}
             if(isCommand(message)){// if the user input is command, switch cases based on the first word of input
                 String [] arr = message.substring(1).split("\\s+");
                 switch (arr[0]){
                     case Constants.Connect_TYPE:
                         handleConnect(arr);
                         break;
-                    case Constants.ROOM_CREATE_JSON_TYPE:
+                    case Constants.ROOM_CREATE_JSON_TYPE: // local command
                         handleCreateRoom(arr);
+                        break;
+                    case Constants.KICK: // local command
+                        handleKick(arr);
+                        break;
+                    case Constants.ROOM_Delete_JSON_TYPE: // local command, but local server will send out message
+                        handleDelete(arr);
+                        break;
+                    case Constants.WHO_JSON_TYPE:
+                        handleRoomContent(arr);
                         break;
                     case Constants.JOIN_JSON_TYPE:
                         handleJoin(arr);
@@ -70,7 +85,11 @@ public class ScannerWorker implements Runnable{
                     case Constants.QUIT_JSON_TYPE:
                         handleQuit();;
                         break;
-
+                    case Constants.LIST_NEIGHBORS_JSON_TYPE:
+                        handleListNeighbors(arr);
+                        break;
+                    default:
+                        System.out.println("no such command, please check");
                 }
             }else{
                 handleMessage(message);
@@ -191,11 +210,34 @@ public class ScannerWorker implements Runnable{
             }else if("".equals(localPeer.getRoomId())){
                 System.out.println("please join a room to send message");
             } else{
-                String relayMessage = MessageServices.genRelayMessage(client.getIdentity()[0],message);
-                this.client.Write(relayMessage);
+
+                String CommonMessage = MessageServices.genClientChatMessage(message);
+                this.client.Write(CommonMessage);
             }
         }catch(IOException e){
             System.out.println("send message fails, try again later");
+        }
+    }
+
+    private void handleRoomContent(String[] arr){
+        try{
+            if(this.client.alive.get()==false){
+                // sockets not connected
+                System.out.println("not connected yet. try #connect operation");
+            }else{
+                if(arr.length==1){//if the input command only contains #Who with no following arguments
+                    System.out.println("invalid command, #who needs 1 argument");
+                }else if(arr.length == 2){//correct command paradigm
+
+                    String WM = MessageServices.genWhoQueryRequestMessage(arr[1]);
+                    this.client.Write(WM);
+
+                }else{//other unconsidered situation
+                    System.out.println("command error");
+                }
+            }
+        }catch(IOException e){
+            System.out.println("#who operation fails, try again later");
         }
     }
 
@@ -206,7 +248,7 @@ public class ScannerWorker implements Runnable{
                 System.out.println("not connected yet. try #connect operation");
             }else{
                 if(arr.length==1){//if the input command only contains #join with no following arguments
-                    System.out.println("invalid command, join option needs 1 argument");
+                    System.out.println("invalid command, #join needs 1 argument");
                 }else if(arr.length == 2){//correct command paradigm
                     if(arr[1].equals(localPeer.getRoomId())){
                         System.out.println("Currently in " + localPeer.getRoomId());
@@ -223,9 +265,53 @@ public class ScannerWorker implements Runnable{
         }
     }
 
-    private void handleCreateRoom(String[] arr){
+    public void handleListNeighbors(String[] arr){
+        if(this.client.alive.get()==false){
+            // sockets not connected
+            System.out.println("not connected yet. try #connect operation");
+        }else{
+            if(arr.length==1){
+                String listNeighborsMessage = MessageServices.genListNeighborsRequestMessage();
+                try{
+                    this.client.Write(listNeighborsMessage);
+                }catch (IOException e){
+                    System.out.println("fail to request for neighbour list");
+                }
+            }else{
+                System.out.println("command error");
+            }
+        }
+    }
+
+    private void handleListMessage(String[] arr){
+        if(this.client.alive.get()==false){
+            // sockets not connected
+            System.out.println("not connected yet. try #connect operation");
+        }else{
+            if(arr.length==1){
+                String listMessage = MessageServices.genListRequestMessage(null);
+                try{
+                    this.client.Write(listMessage);
+                }catch (IOException e){
+                    System.out.println("fail to request for room list");
+                }
+            }else{
+                System.out.println("command error");
+            }
+        }
+    }
+
+
+
+
+
+    private void handleCreateRoom(String[] arr){// local command
+        if(this.client.alive.get()==true){
+            System.out.println("cannot create room when having connections with other server");
+            return;
+        }
         if(arr.length == 1){
-            System.out.println("invalid command, createroom option needs 1 argument");
+            System.out.println("invalid command, #createroom option needs 1 argument");
         }else if(arr.length == 2){
             // check input validation first
             if(StringUtils.isValidRoomId(arr[1])){
@@ -238,71 +324,35 @@ public class ScannerWorker implements Runnable{
         }
     }
 
-    private void handleListMessage(String[] arr){
-        if(arr.length==1){
-            String listMessage = MessageServices.genListRequestMessage(null);
-            try{
-                this.client.Write(listMessage);
-            }catch (IOException e){
-                System.out.println("fail to request for room list");
+    private void handleDelete(String[] arr){ // local command, do not check connection
+        if(this.client.alive.get()==true){
+            System.out.println("cannot delete room when having connections with other server");
+            return;
+        }
+        if(arr.length == 1){
+            System.out.println("invalid command, #delete option needs 1 argument");
+        }else if(arr.length == 2){
+            // check input validation first
+            if(StringUtils.isValidRoomId(arr[1])){
+                chatRoomManager.deleteRoomById(arr[1]);
+            }else{
+                System.out.println("Invalid ROOMID");
             }
         }else{
             System.out.println("command error");
         }
     }
 
-//    private void sendMessage(SocketChannel socketChannel, String message) throws IOException {
-//        writeBuffer.clear();
-//        writeBuffer.put(message.getBytes(StandardCharsets.UTF_8));
-//        writeBuffer.flip();
-//        socketChannel.write(writeBuffer);
-//    }
-
-//    public static String genQuitMessage(String host){
-//        QuitMessage jsonObject = QuitMessage.builder()
-//                .build();
-//        return new Gson().toJson(jsonObject) + "\n";
-//    }
-
-
-    // JSONObject requestDataObject = JSONObject.parseObject(text);
-
-//    public static String genRelayMessage(String identity, String content) {
-//        ServerRelayMessage jsonObject = ServerRelayMessage.builder()
-//                .content(content)
-//                .identity(identity)
-//                .build();
-//
-//        return new Gson().toJson(jsonObject) + "\n";
-//    }
-
-//    public static String genHostChangeMessage(String host){
-//        HostChangeMessage jsonObject = HostChangeMessage.builder()
-//                .host(host)
-//                .hashId(Constants.THIS_PEER_HASH_ID)
-//                .build();
-//        return new Gson().toJson(jsonObject) + "\n";
-//    }
+    private void handleKick(String[] arr){ // local command, do not check connection
+        if(arr.length == 1){
+            System.out.println("invalid command, #kick option needs 1 argument");
+        }else if(arr.length == 2){
+            chatRoomManager.kickPeerByPeerId(arr[1]); // cannot know if kick is success
+        }else{
+            System.out.println("command error");
+        }
+    }
 
 
 
-//    public static String genHashId() {
-//        int LENGTH = 30;
-//        StringBuilder val = new StringBuilder();
-//        Random random = new Random();
-//
-//        for (int i = 0; i < LENGTH; i++) {
-//
-//            String charOrNum = random.nextInt(2) % 2 == 0 ? "char" : "num";
-//            //
-//            if ("char".equalsIgnoreCase(charOrNum)) {
-//                // Output letters or numbers
-//                int temp = random.nextInt(2) % 2 == 0 ? 65 : 97;
-//                val.append((char) (random.nextInt(26) + temp));
-//            } else {
-//                val.append(String.valueOf(random.nextInt(10)));
-//            }
-//        }
-//        return val.toString();
-//    }
 }

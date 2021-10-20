@@ -187,6 +187,7 @@ public class ChatServer implements Runnable {
         if (neighborPeerManager.isPeerLivingByPeerId(sourcePeer.getIdentity())) {
             System.out.println("[debug] server is handling a request: " + text + " , from " + sourcePeer.getIdentity());
             JSONObject requestDataObject = JSONObject.parseObject(text);
+
             if (requestDataObject == null) {
                 throw new JSONException("JSON object parse ERROR");
             }
@@ -201,7 +202,7 @@ public class ChatServer implements Runnable {
                         throw new JSONException("Missing attributes");
                     }
 
-                    String relayMessage = MessageServices.genRelayMessage(sourcePeer.getIdentity(), text);
+                    String relayMessage = MessageServices.genRelayMessage(sourcePeer.getIdentity(), content);
                     chatRoomManager.broadcastMessageInRoom(sourcePeer
                             , sourcePeer.getRoomId()
                             , relayMessage,

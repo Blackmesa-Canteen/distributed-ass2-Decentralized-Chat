@@ -16,7 +16,9 @@ import lombok.*;
 public class Peer {
 
     /** id string: 192.168.1.10:3000 */
-    private volatile String identity;
+    private volatile String identity; // local hostname + local peer's listenting port
+    private volatile String serverSideIdentity; // public hostname + local peer's output port
+
     @Builder.Default
     private String originalConnectionHostText = "";
 
@@ -49,4 +51,6 @@ public class Peer {
     /** at first connection, the id's port is not accept port, need to be altered in hostchange packet */
     @Builder.Default
     private volatile boolean isGotListenPort = false;
+
+
 }
