@@ -35,6 +35,7 @@ public class Constants {
     public static final String Connect_TYPE = "connect";
     public static final String ROOM_CREATE_JSON_TYPE = "createroom";
     public static final String ROOM_Delete_JSON_TYPE = "delete";
-    public static final String KICK = "kick";
+    public static final String KICK_TYPE = "kick";
+    public static final String Search_Net_TYPE = "searchnetwork";
 
 }

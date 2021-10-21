@@ -23,6 +23,7 @@ public class NIOClient implements Runnable{
     private ScannerWorker scannerWorker;
     private Peer localPeer;
     private SocketChannel socketChannel;
+    // private SocketChannel searchChannel;
     private ByteBuffer writeBuffer = ByteBuffer.allocate(2048);
     private ByteBuffer readBuffer = ByteBuffer.allocate(2048);
 
@@ -87,10 +88,9 @@ public class NIOClient implements Runnable{
 
         // server's address, address+port e.g. 127.0.0.1:1234,
         InetSocketAddress isa = new InetSocketAddress(address,port);
-        //connect to sever, connectNum +1
+
         socketChannel.connect(isa);
         socketChannel.finishConnect();
-
 
         this.socketChannel = socketChannel;
 
@@ -109,7 +109,7 @@ public class NIOClient implements Runnable{
             System.out.println("[debug client] listeningPort : " + localPeer.getListenPort());
             System.out.println("[debug client] identity : " + localPeer.getIdentity());
             System.out.println("[debug client] serverSideIdentity : " + localPeer.getServerSideIdentity());
-            // record the success connection
+            // record the success connection, connect to sever, connectNum +1
             connectNum += 1;
         }else{
             System.out.println("connect fails, maybe bad server address");

@@ -128,7 +128,11 @@ public class ClientWorker implements Runnable{
                 }
 
             }else{//current client joins successfully
-                result = identity + " moves from "+ former +" to "+roomid;
+                if("".equals(former)){ // join room first time
+                    result = identity + " joins " + roomid;
+                }else{
+                    result = identity + " moves from "+ former +" to "+roomid;
+                }
                 //update local client variables
                 this.localPeer.setFormerRoomId(this.localPeer.getRoomId());
                 this.localPeer.setRoomId(roomid);

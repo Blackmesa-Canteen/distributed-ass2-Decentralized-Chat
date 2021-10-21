@@ -14,6 +14,7 @@ import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
 import java.util.Random;
 import java.util.Scanner;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -67,7 +68,7 @@ public class ScannerWorker implements Runnable{
                     case Constants.ROOM_CREATE_JSON_TYPE: // local command
                         handleCreateRoom(arr);
                         break;
-                    case Constants.KICK: // local command
+                    case Constants.KICK_TYPE: // local command
                         handleKick(arr);
                         break;
                     case Constants.ROOM_Delete_JSON_TYPE: // local command, but local server will send out message
@@ -87,6 +88,9 @@ public class ScannerWorker implements Runnable{
                         break;
                     case Constants.LIST_NEIGHBORS_JSON_TYPE:
                         handleListNeighbors(arr);
+                        break;
+                    case Constants.Search_Net_TYPE:
+                        handleSearchNet(arr);
                         break;
                     default:
                         System.out.println("no such command, please check");
@@ -348,6 +352,29 @@ public class ScannerWorker implements Runnable{
             System.out.println("invalid command, #kick option needs 1 argument");
         }else if(arr.length == 2){
             chatRoomManager.kickPeerByPeerId(arr[1]); // cannot know if kick is success
+        }else{
+            System.out.println("command error");
+        }
+    }
+
+    private void handleSearchNet(String[] arr){
+        if(arr.length == 1){
+            // start search net
+            BFS bfs = new BFS();
+            try{
+                HashMap<String, HashMap> BFSResult = bfs.search(localPeer);
+                for(String peerKey:BFSResult.keySet()){
+                    System.out.println(peerKey);
+                    HashMap<String, Integer> roomMap =  BFSResult.get(peerKey);
+                    for(String roomKey: roomMap.keySet()){
+                        System.out.println(roomKey + " " + roomMap.get(roomKey) + " users");
+                    }
+
+                }
+            }catch(InterruptedException | IOException e){
+                e.printStackTrace();
+            }
+
         }else{
             System.out.println("command error");
         }
