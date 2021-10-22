@@ -6,6 +6,7 @@ import com.google.gson.Gson;
 import org.team54.messageBean.RoomDTO;
 import org.team54.messageBean.RoomListMessage;
 import org.team54.messageBean.ServerRespondNeighborsMessage;
+import org.team54.messageBean.ShoutMessage;
 import org.team54.model.Peer;
 import org.team54.utils.Constants;
 import java.io.IOException;
@@ -84,6 +85,8 @@ public class ClientWorker implements Runnable{
             case Constants.MESSAGE_JSON_TYPE:
                 print2Console(handleMessage(replyDataObject));
                 break;
+            case Constants.SHOUT_JSON_TYPE:
+                print2Console(handleShoutMessage(replyDataObject));
 
         }
         // start to handle json messages from server, hasn't finished yet;
@@ -192,6 +195,16 @@ public class ClientWorker implements Runnable{
             }
         }
 
+        return result;
+    }
+
+    private String handleShoutMessage(JSONObject replyDataObject){
+        String result = "";
+        ShoutMessage SM = replyDataObject.toJavaObject(replyDataObject,ShoutMessage.class);
+
+        String identity = SM.getRootIdentity();
+        String content = SM.getContent();
+        result = "[" + identity + " shouted]: " + content;
         return result;
     }
 

@@ -92,6 +92,9 @@ public class ScannerWorker implements Runnable{
                     case Constants.Search_Net_TYPE:
                         handleSearchNet(arr);
                         break;
+                    case Constants.SHOUT_JSON_TYPE:
+                        handleShout(arr);
+                        break;
                     default:
                         System.out.println("no such command, please check");
                 }
@@ -377,6 +380,32 @@ public class ScannerWorker implements Runnable{
 
         }else{
             System.out.println("command error");
+        }
+    }
+
+    private void handleShout(String[] arr){
+        try{
+            if(this.client.alive.get()==false){
+                // sockets not connected
+                System.out.println("not connected yet. try #connect operation");
+            }else if("".equals(this.localPeer.getRoomId())){
+                System.out.println("need to join a room before shout");
+            } else{
+                if(arr.length==1){//if the input command only contains #shout with no following arguments
+                    System.out.println("invalid command, #shout needs 1 argument");
+                }else if(arr.length > 1){//correct command paradigm
+                    String content = "";
+                    for(int i = 1; i<arr.length;i++){
+                        content += arr[i] + " ";
+                    }
+                    String SM = MessageServices.genRootShoutChatRequestMessage(this.localPeer.getHashId(),content.trim());
+                    this.client.Write(SM);
+                }else{//other unconsidered situation
+                    System.out.println("command error");
+                }
+            }
+        }catch(IOException e){
+            System.out.println("#shout operation fails, try again later");
         }
     }
 

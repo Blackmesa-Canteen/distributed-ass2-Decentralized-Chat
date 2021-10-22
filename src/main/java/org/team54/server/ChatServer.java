@@ -2,6 +2,8 @@ package org.team54.server;
 
 import com.alibaba.fastjson.JSONException;
 import com.alibaba.fastjson.JSONObject;
+import org.team54.client.BFS;
+import org.team54.client.NIOClient;
 import org.team54.model.Peer;
 import org.team54.service.MessageServices;
 import org.team54.utils.CharsetConvertor;
@@ -58,6 +60,8 @@ public class ChatServer implements Runnable {
     private final NeighborPeerManager neighborPeerManager;
     private final ChatRoomManager chatRoomManager;
 
+    private NIOClient localclient;
+
     public ChatServer(InetAddress hostAddress, int port, MessageQueueWorker MQWorker) throws IOException {
         this.hostAddress = hostAddress;
         this.port = port;
@@ -71,6 +75,8 @@ public class ChatServer implements Runnable {
         this.neighborPeerManager = NeighborPeerManager.getInstance();
         // attach server to this manager
         this.chatRoomManager = ChatRoomManager.getInstance();
+
+
     }
 
     /**
@@ -296,6 +302,15 @@ public class ChatServer implements Runnable {
 
                         // TODO 本peer还要将这个新消息发往上游的chatroom server(如果存在的话)
                         // 需要在client里实现,因为只有client里能够和上游server的listening port直接通信
+                        // List<Peer> allNeighborPeers = neighborPeerManager.getAllNeighborPeers();
+                        if(this.localclient.alive.get()){ // if the local client has connection with other server
+                            try{
+                                this.localclient.Write(newShoutMessageWithRootIdentity);
+                            }catch(IOException e){
+                                System.out.println("fail to send shout message from local peer to other server");
+                            }
+
+                        }
 
                     } else {
                         System.out.println("[debug] server got shout message, it is NOT a root shout.");
@@ -306,6 +321,13 @@ public class ChatServer implements Runnable {
 
                         // TODO 本peer还要将这个新消息发往上游的chatroom, 如果存在的话
                         // 需要在client里实现,因为只有client里能够和上游server的listening port直接通信
+                        if(this.localclient.alive.get()){ // if the local client has connection with other server
+                            try{
+                                this.localclient.Write(text);
+                            }catch(IOException e){
+                                System.out.println("fail to send shout message from local peer to other server");
+                            }
+                        }
                     }
                 }
             } else {
@@ -423,5 +445,9 @@ public class ChatServer implements Runnable {
 
     public int getPort() {
         return port;
+    }
+
+    public void setLocalclient(NIOClient client){
+        this.localclient = client;
     }
 }

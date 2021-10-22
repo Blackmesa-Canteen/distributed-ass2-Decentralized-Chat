@@ -87,6 +87,7 @@ public class ChatPeer {
         // the client thread and the worker thread need to be started after #connet command
         // the scannerWorker will read the #connect and starts them.
 
+        server.setLocalclient(client);
     }
 
     private static void handleArgs(String[] args) {
