@@ -46,8 +46,8 @@ public class NIOClient implements Runnable{
         while(alive.get()){
             try{
                 Read(socketChannel);
-                Thread.sleep(1000);
-            }catch (IOException | InterruptedException e){
+                //Thread.sleep(1000);
+            }catch (IOException e){
                 e.printStackTrace();
             }
 
@@ -65,8 +65,18 @@ public class NIOClient implements Runnable{
         connectNum -= 1;
         // need to set ClientBind port to -1 for next connection
         ChatPeer.setClientPort(-1);
+
+        String text = "Disconnected from " + this.localPeer.getPublicHostName();
+        if(ScannerWorker.waitingInput.get()){
+            System.out.println("\n" +  text);
+            ScannerWorker.waitingInput.set(false);
+        }else{
+            System.out.println(text);
+        }
+
         // reset values in localPeer
         resetPeer();
+
 
     }
 
@@ -103,19 +113,19 @@ public class NIOClient implements Runnable{
             //localPeer.setIdentity(socketChannel.getLocalAddress().toString().replace("/",""));
             localPeer.setIdentity(localPeer.getLocalHostName()+":"+localPeer.getListenPort());
             localPeer.setServerSideIdentity(localPeer.getPublicHostName()+":"+localPeer.getOutgoingPort());
-            System.out.println("[debug client] publichostName : " + localPeer.getPublicHostName());
-            System.out.println("[debug client] localhostName : " + localPeer.getLocalHostName());
-            System.out.println("[debug client] outgoingPort : " + localPeer.getOutgoingPort());
-            System.out.println("[debug client] listeningPort : " + localPeer.getListenPort());
-            System.out.println("[debug client] identity : " + localPeer.getIdentity());
-            System.out.println("[debug client] serverSideIdentity : " + localPeer.getServerSideIdentity());
+            // System.out.println("[debug client] publichostName : " + localPeer.getPublicHostName());
+            // System.out.println("[debug client] localhostName : " + localPeer.getLocalHostName());
+            // System.out.println("[debug client] outgoingPort : " + localPeer.getOutgoingPort());
+            // System.out.println("[debug client] listeningPort : " + localPeer.getListenPort());
+            // System.out.println("[debug client] identity : " + localPeer.getIdentity());
+            // System.out.println("[debug client] serverSideIdentity : " + localPeer.getServerSideIdentity());
             // record the success connection, connect to sever, connectNum +1
             connectNum += 1;
         }else{
             System.out.println("connect fails, maybe bad server address");
         }
 
-        System.out.println("[debug client] finish connect");
+        // System.out.println("[debug client] finish connect");
         return socketChannel;
     }
 
@@ -160,7 +170,7 @@ public class NIOClient implements Runnable{
         int readNum = socketChannel.read(readBuffer);
 
         if(readNum == -1){
-            System.out.println("[debug client] in client, bad read, client close");
+            // System.out.println("[debug client] in client, bad read, client close");
             stop();
             return;
         }
@@ -194,7 +204,7 @@ public class NIOClient implements Runnable{
         String hashID = localPeer.getHashId();
         //String identity = address.toString()+":"+ ChatPeer.getServerListenPort();
         //String hashID = Constants.THIS_PEER_HASH_ID;
-        System.out.println("[debug client] in client, getIdnetity, identity: " + identity + " hashID: " + hashID);
+        // System.out.println("[debug client] in client, getIdnetity, identity: " + identity + " hashID: " + hashID);
         arr[0] = identity;
         arr[1] = hashID;
         return arr;

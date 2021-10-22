@@ -58,7 +58,7 @@ public class BFS implements Runnable {
             String hostText = peer.getPublicHostName() + ":" + peer.getListenPort();
             // push child to queue
             queue.offer(hostText);
-            System.out.println("[debug client] pushed peer is: " + hostText);
+            // System.out.println("[debug client] pushed peer is: " + hostText);
         }
 
         while(!queue.isEmpty()){
@@ -113,7 +113,7 @@ public class BFS implements Runnable {
         alive.set(true);
         while(alive.get()){
             if(!searchChannel.isConnected()){
-                System.out.println("[debug client] in BFS reading, not connected yet");
+                // System.out.println("[debug client] in BFS reading, not connected yet");
                 return null;
             }
             readBuffer.clear();
@@ -121,7 +121,7 @@ public class BFS implements Runnable {
             int readNum = searchChannel.read(readBuffer);
 
             if(readNum == -1){
-                System.out.println("[debug client] in client BFS read, bad read, client close");
+                // System.out.println("[debug client] in client BFS read, bad read, client close");
                 stop();
                 return null;
             }
@@ -170,7 +170,7 @@ public class BFS implements Runnable {
                     // already get neighbor info, stop reading
 
                     Thread.sleep(1000); // wait server to close socketchannel
-                    System.out.println("[debug client] in search network, get room change response, close");
+                    // System.out.println("[debug client] in search network, get room change response, close");
                     stop();
                 } else{ // not the list neighbor message, keep waiting
                     continue;
@@ -198,14 +198,14 @@ public class BFS implements Runnable {
             this.searchChannel = socketChannel;
             return true;
         }else{
-            System.out.println("[debug client] fail to connect to " +  isa + " in BFS connect");
+            // System.out.println("[debug client] fail to connect to " +  isa + " in BFS connect");
             return false;
         }
     }
 
     private boolean stop() throws IOException{
         if(!this.searchChannel.isConnected()){
-            System.out.println("[debug client] searchChannel not connected yet");
+            // System.out.println("[debug client] searchChannel not connected yet");
             return false;
         }
         alive.set(false);

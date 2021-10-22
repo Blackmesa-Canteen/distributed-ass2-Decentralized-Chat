@@ -59,6 +59,7 @@ public class ChatPeer {
         neighborPeerManager = NeighborPeerManager.getInstance();
         chatRoomManager.setNeighborPeerManager(neighborPeerManager);
         neighborPeerManager.setChatRoomManager(chatRoomManager);
+        chatRoomManager.setLocalPeer(localPeer);
 
         server = new ChatServer(null, serverListenPort, MQWorker);
         new Thread(server).start();
@@ -87,7 +88,12 @@ public class ChatPeer {
         // the client thread and the worker thread need to be started after #connet command
         // the scannerWorker will read the #connect and starts them.
 
+        // when dealing with local commands, pass work to clientworker directly without TCP connection
+        chatRoomManager.setClientWorker(clientWorker);
         server.setLocalclient(client);
+
+        Thread clientWorkerThread = new Thread(clientWorker);
+        clientWorkerThread.start();
     }
 
     private static void handleArgs(String[] args) {

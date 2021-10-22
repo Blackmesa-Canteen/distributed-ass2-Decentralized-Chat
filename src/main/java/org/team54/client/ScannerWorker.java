@@ -5,6 +5,7 @@ import org.team54.messageBean.*;
 import org.team54.model.Peer;
 import org.team54.server.ChatRoomManager;
 import org.team54.service.MessageServices;
+import org.team54.utils.CharsetConvertor;
 import org.team54.utils.Constants;
 
 
@@ -12,6 +13,7 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
+import java.nio.CharBuffer;
 import java.nio.channels.SocketChannel;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
@@ -57,7 +59,11 @@ public class ScannerWorker implements Runnable{
             }
 
             waitingInput.set(true);
+
             String message = scanner.nextLine();
+            waitingInput.set(false);
+
+            //waitingInput.set(true);
             if("".equals(message)){continue;}
             if(isCommand(message)){// if the user input is command, switch cases based on the first word of input
                 String [] arr = message.substring(1).split("\\s+");
@@ -78,7 +84,7 @@ public class ScannerWorker implements Runnable{
                         handleRoomContent(arr);
                         break;
                     case Constants.JOIN_JSON_TYPE:
-                        handleJoin(arr);
+                        handlejoin(arr);
                         break;
                     case Constants.LIST_JSON_TYPE:
                         handleListMessage(arr);
@@ -143,13 +149,14 @@ public class ScannerWorker implements Runnable{
                 int port = Integer.parseInt(addressArr[1]);
                 // if the command is connect, starts the client thread and the clientworker thread
                 this.client.startConn(-1,port,address);
-                workerThread = new Thread(clientWorker);
+                this.clientWorker.setClient(this.client);
+                //workerThread = new Thread(clientWorker);
                 clientThread = new Thread(client);
-                if(!workerThread.isAlive()){workerThread.start();}
+                //if(!workerThread.isAlive()){workerThread.start();}
                 if(!clientThread.isAlive()){clientThread.start();}
                 // send identity to server
                 String message = MessageServices.genHostChangeRequestMessage(client.getIdentity()[0]);
-                System.out.println("[debug client] host change message sendt is: " + message);
+                // System.out.println("[debug client] host change message sendt is: " + message);
                 //message = "{\"type\":\"hostchange\",\"host\":\"127.0.0.1:4444\",\"hashId\":\"6u2I7chmC5F0Jd4h196G12X28l2L8P\"}";
                 this.client.Write(message);
                 // set changes to Peer
@@ -175,9 +182,10 @@ public class ScannerWorker implements Runnable{
                 int localport = Integer.parseInt(arr[2]);
                 // if the command is #connect, starts the client and client worker thread
                 this.client.startConn(localport,port,address);
-                workerThread = new Thread(clientWorker);
+                this.clientWorker.setClient(this.client);
+                //workerThread = new Thread(clientWorker);
                 clientThread = new Thread(client);
-                if(!workerThread.isAlive()){workerThread.start();}
+                //if(!workerThread.isAlive()){workerThread.start();}
                 if(!clientThread.isAlive()){clientThread.start();}
                 // send identity to server
                 String message = MessageServices.genHostChangeRequestMessage(client.getIdentity()[0]);
@@ -195,6 +203,7 @@ public class ScannerWorker implements Runnable{
             try{
                 String quitMessaage = MessageServices.genQuitRequestMessage();
                 this.client.Write(quitMessaage);
+                clientWorker.waitingQuitResponse.set(true);
 //                clientWorker.alive.set(false);
 //                client.alive.set(false);
 //                client.stop();
@@ -213,7 +222,13 @@ public class ScannerWorker implements Runnable{
         try{
             if(this.client.alive.get()==false){
                 // sockets not connected
-                System.out.println("not connected yet. try #connect operation");
+                // System.out.println("not connected yet. try #connect operation");
+                if(this.localPeer.getRoomId().length() != 0){ // local peer joins a local room
+
+                    String relayMessage = MessageServices.genRelayMessage(localPeer.getIdentity(), message).trim();
+
+                    chatRoomManager.broadcastMessageInRoom(localPeer,localPeer.getRoomId(),relayMessage,localPeer);
+                }
             }else if("".equals(localPeer.getRoomId())){
                 System.out.println("please join a room to send message");
             } else{
@@ -247,12 +262,47 @@ public class ScannerWorker implements Runnable{
             System.out.println("#who operation fails, try again later");
         }
     }
+    private void handlejoin(String[] arr){
+        if(arr.length==1){//if the input command only contains #join with no following arguments
+            System.out.println("invalid command, #join needs 1 argument");
+        }else if(arr.length == 2){//correct command paradigm
+            if(arr[1].equals(localPeer.getRoomId())){
+                System.out.println("Currently in " + localPeer.getRoomId());
+            }else{
+                if(this.client.alive.get()==false){ // if doesn't connect to server, can join local room
+                    localPeer.setServerSideIdentity("127.0.0.1:"+ChatPeer.getServerListenPort());
+                    localPeer.setIdentity("127.0.0.1:"+ChatPeer.getServerListenPort());
+                    chatRoomManager.joinPeerToRoom(arr[1].replace("\"\"",""),localPeer);
 
+                }else{ // connect to a server ,join remote rooms
+                    String JRM;
+                    if("\"\"".equals(arr[1])){
+                        JRM = MessageServices.genJoinRoomRequestMessage("");
+                    }else{
+                        JRM = MessageServices.genJoinRoomRequestMessage(arr[1]);
+                    }
+                    try{
+                        this.client.Write(JRM);
+                    }catch (IOException e){
+                        System.out.println("join fails, try again later");
+                    }
+
+                }
+
+
+            }
+        }else{//other unconsidered situation
+            System.out.println("command error");
+        }
+
+
+    }
     private void handleJoin(String[] arr){
         try{
             if(this.client.alive.get()==false){
-                // sockets not connected
+                // sockets not connected, but can join localroom
                 System.out.println("not connected yet. try #connect operation");
+
             }else{
                 if(arr.length==1){//if the input command only contains #join with no following arguments
                     System.out.println("invalid command, #join needs 1 argument");
@@ -260,7 +310,12 @@ public class ScannerWorker implements Runnable{
                     if(arr[1].equals(localPeer.getRoomId())){
                         System.out.println("Currently in " + localPeer.getRoomId());
                     }else{
-                        String JRM = MessageServices.genJoinRoomRequestMessage(arr[1]);
+                        String JRM;
+                        if("\"\"".equals(arr[1])){
+                            JRM = MessageServices.genJoinRoomRequestMessage("");
+                        }else{
+                            JRM = MessageServices.genJoinRoomRequestMessage(arr[1]);
+                        }
                         this.client.Write(JRM);
                     }
                 }else{//other unconsidered situation
@@ -342,6 +397,7 @@ public class ScannerWorker implements Runnable{
             // check input validation first
             if(StringUtils.isValidRoomId(arr[1])){
                 chatRoomManager.deleteRoomById(arr[1]);
+                //System.out.println("delete room " + arr[1] + " successfully");
             }else{
                 System.out.println("Invalid ROOMID");
             }

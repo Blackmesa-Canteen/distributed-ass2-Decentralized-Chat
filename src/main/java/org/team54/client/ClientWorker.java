@@ -19,13 +19,23 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 public class ClientWorker implements Runnable{
     public AtomicBoolean alive = new AtomicBoolean();
+    public AtomicBoolean waitingQuitResponse = new AtomicBoolean();
     // mission queue to store mission from client thread
     private LinkedBlockingQueue<ClientDataEvent> queue = new LinkedBlockingQueue(128);
     private Peer localPeer;
+    private NIOClient client;
+
 
     public ClientWorker(Peer localPeer){
+
         this.localPeer = localPeer;
+
     }
+
+    public void setClient(NIOClient nioClient){
+        this.client = nioClient;
+    }
+
 
     @Override
     public void run(){
@@ -63,9 +73,9 @@ public class ClientWorker implements Runnable{
 
 
     private void handleData(ClientDataEvent clientdataEvent){
-        //get the received data
+        // get the received data
         String data = new String(clientdataEvent.data,0,clientdataEvent.data.length);
-        print2Console("[debug client] received data is "+data);
+        //print2Console("[debug client] received data is "+data);
         JSONObject replyDataObject = JSONObject.parseObject(data);
 
         String type = replyDataObject.getString("type");
@@ -96,10 +106,17 @@ public class ClientWorker implements Runnable{
         if("".equals(text)){// if text is null, do not print
             return;
         }
+        try {
+            Thread.sleep(500);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
         if(ScannerWorker.waitingInput.get()){
             System.out.println("\n" +  text);
             ScannerWorker.waitingInput.set(false);
+
         }else{
+
             System.out.println(text);
         }
     }
@@ -117,36 +134,41 @@ public class ClientWorker implements Runnable{
         String roomid = replyDataObject.getString("roomid");
         String former = replyDataObject.getString("former");
         String result = "";
-
         if(identity.equals(this.localPeer.getServerSideIdentity())){//if the current client is the one who changes room
-            if(former.equals(roomid)){//current client fails to join
-                result = "The request room is invalid or nonexistent";
-            }else if(roomid.length()==0){//current client quit
-                if(this.localPeer.getRoomId().length() == 0){//quit without joining a room
-                    result += "\nDisconnected from " + this.localPeer.getPublicHostName();
-                }else{
+            if(waitingQuitResponse.get() == true){ // if the current peer is waiting for quit response
+                if(this.localPeer.getRoomId().length() != 0) {//quit without joining a room
                     result = identity + " leaves " + this.localPeer.getRoomId();
-                    result += "\nDisconnected from " + this.localPeer.getPublicHostName();
-                    // server will close the socketchannel, will have a bad read and close in NIOClient
+                    // server will close the socketchannel, client will have a bad read and close in NIOClient
+                }
+                // set waiting for quit to false
+                waitingQuitResponse.set(false);
+            }else{ // if the current peer is waiting for room change response
+                if(former.equals(roomid)){ // fail to join
+                    result = "The request room is invalid or non existent";
+                }else{ // join success
+                    if("".equals(former)){ // join room first time
+                        result = identity + " moved to " + roomid;
+                    }else{
+                        if(roomid.length() == 0){ // leave room
+                            result = identity + " leaves "+ former;
+                        }else{ // change room
+                            result = identity + " moved from "+ former +" to "+roomid;
+                        }
+
+                    }
+                    //update local client variables
+                    this.localPeer.setFormerRoomId(this.localPeer.getRoomId());
+                    this.localPeer.setRoomId(roomid);
                 }
 
-            }else{//current client joins successfully
-                if("".equals(former)){ // join room first time
-                    result = identity + " joins " + roomid;
-                }else{
-                    result = identity + " moves from "+ former +" to "+roomid;
-                }
-                //update local client variables
-                this.localPeer.setFormerRoomId(this.localPeer.getRoomId());
-                this.localPeer.setRoomId(roomid);
             }
         }else{//if the current client is not the one who changes room
             if(roomid.length()==0){//other client quit from server
                 result = identity + " leaves " + this.localPeer.getRoomId();
             }else if(former.length()==0){//other client fails to join
-                result = identity + " moves to " + roomid;
+                result = identity + " moved to " + roomid;
             }else{//other client joins successfully
-                result = identity + " moves from "+ former +" to "+roomid;
+                result = identity + " moved from "+ former +" to "+roomid;
             }
         }
 
@@ -204,7 +226,8 @@ public class ClientWorker implements Runnable{
 
         String identity = SM.getRootIdentity();
         String content = SM.getContent();
-        result = "[" + identity + " shouted]: " + content;
+        result = identity + " shouted: " + content;
+        //result = "[" + identity + " shouted]: " + content;
         return result;
     }
 

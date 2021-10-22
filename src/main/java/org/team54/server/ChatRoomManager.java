@@ -1,10 +1,13 @@
 package org.team54.server;
 
+import org.team54.client.ClientWorker;
+import org.team54.client.NIOClient;
 import org.team54.model.Peer;
 import org.team54.model.Room;
 import org.team54.service.MessageServices;
 import org.team54.utils.StringUtils;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -25,7 +28,8 @@ public class ChatRoomManager {
     private final ConcurrentHashMap<String, Room> liveRoomMap;
 
     private NeighborPeerManager neighborPeerManager;
-
+    private Peer localPeer;
+    private ClientWorker clientWorker;
     public static synchronized ChatRoomManager getInstance() {
         if (instance == null) {
             instance = new ChatRoomManager();
@@ -37,7 +41,8 @@ public class ChatRoomManager {
     private ChatRoomManager() {
         this.liveRoomMap = new ConcurrentHashMap<>();
     }
-
+    public void setLocalPeer(Peer localPeer){this.localPeer = localPeer;}
+    public void setClientWorker(ClientWorker clientWorker){this.clientWorker = clientWorker;}
     public void setNeighborPeerManager(NeighborPeerManager neighborPeerManager) {
         this.neighborPeerManager = neighborPeerManager;
     }
@@ -251,7 +256,11 @@ public class ChatRoomManager {
             if (room != null && srcPeer.getRoomId().equals(roomId)) {
                 ArrayList<Peer> peers = room.getPeers();
                 for (Peer peer : peers) {
-                    if (peerExcluded == null || !peerExcluded.equals(peer)) {
+
+                    if(peer.equals(localPeer)){
+                        byte[] bytes = message.getBytes(StandardCharsets.UTF_8);
+                        clientWorker.processEvent(null,null,bytes,bytes.length);
+                    }else if(peerExcluded == null || !peerExcluded.equals(peer)) {
                         peer.getPeerConnection().sendTextMsgToMe(message);
                     }
                 }

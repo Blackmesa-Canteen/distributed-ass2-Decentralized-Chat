@@ -186,7 +186,7 @@ public class MessageServices {
         List<String> res = new ArrayList<>();
         for (Peer peer : allNeighborPeers) {
             String hostText = peer.getPublicHostName() + ":" + peer.getListenPort();
-            System.out.println("[debug] response neighbor peer hostname: " + hostText);
+            // System.out.println("[debug] response neighbor peer hostname: " + hostText);
             res.add(hostText);
         }
 

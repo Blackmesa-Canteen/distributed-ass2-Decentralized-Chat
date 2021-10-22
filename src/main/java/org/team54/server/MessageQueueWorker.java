@@ -23,7 +23,7 @@ public class MessageQueueWorker implements Runnable {
                 .text(text)
                 .build();
 
-        System.out.println("[debug] a new incoming message is recieved in server. from " + sourcePeer.getIdentity());
+        // System.out.println("[debug] a new incoming message is recieved in server. from " + sourcePeer.getIdentity());
         queue.offer(message);
     }
 
