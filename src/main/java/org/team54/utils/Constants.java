@@ -32,10 +32,12 @@ public class Constants {
     public static final String LIST_JSON_TYPE = "list";
     public static final String MESSAGE_JSON_TYPE = "message";
     public static final String QUIT_JSON_TYPE = "quit";
+
     public static final String Connect_TYPE = "connect";
-    public static final String ROOM_CREATE_JSON_TYPE = "createroom";
-    public static final String ROOM_Delete_JSON_TYPE = "delete";
     public static final String KICK_TYPE = "kick";
     public static final String Search_Net_TYPE = "searchnetwork";
+
+    public static final String ROOM_CREATE_TYPE = "createroom";
+    public static final String ROOM_Delete_TYPE = "delete";
 
 }

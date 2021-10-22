@@ -65,13 +65,13 @@ public class ScannerWorker implements Runnable{
                     case Constants.Connect_TYPE:
                         handleConnect(arr);
                         break;
-                    case Constants.ROOM_CREATE_JSON_TYPE: // local command
+                    case Constants.ROOM_CREATE_TYPE: // local command
                         handleCreateRoom(arr);
                         break;
                     case Constants.KICK_TYPE: // local command
                         handleKick(arr);
                         break;
-                    case Constants.ROOM_Delete_JSON_TYPE: // local command, but local server will send out message
+                    case Constants.ROOM_Delete_TYPE: // local command, but local server will send out message
                         handleDelete(arr);
                         break;
                     case Constants.WHO_JSON_TYPE:

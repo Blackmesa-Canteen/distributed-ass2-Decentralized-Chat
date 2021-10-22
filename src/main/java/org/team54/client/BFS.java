@@ -1,7 +1,7 @@
 package org.team54.client;
 
 import com.alibaba.fastjson.JSONObject;
-import org.team54.messageBean.BFSTuple;
+import org.team54.model.BFSTuple;
 import org.team54.messageBean.RoomDTO;
 import org.team54.messageBean.RoomListMessage;
 import org.team54.messageBean.ServerRespondNeighborsMessage;
@@ -18,9 +18,7 @@ import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -39,11 +37,12 @@ public class BFS implements Runnable {
 
     public HashMap search(Peer localPeer) throws InterruptedException, IOException {
         HashMap<String,HashMap> BFSResult = new HashMap<>();
-        HashMap<String,String> roomContent = new HashMap<>();
+        // HashMap<String,String> roomContent = new HashMap<>();
 
         // close list to store the hashID of visited peers
         // cannot get hashID from listneighbor option, use identity instead.
-        List<String> closeList = new ArrayList<String>();
+        //List<String> closeList = new ArrayList<String>();
+        Set<String> closeSet = new HashSet<String>();
 
         // queue, store identity of Peer
         LinkedBlockingQueue<String> queue = new LinkedBlockingQueue(128);
@@ -66,12 +65,12 @@ public class BFS implements Runnable {
             // take the first peer from the queue, find children
             String curPeer = queue.take();
             // judge if we have visted the current peer before
-            if(closeList.contains(curPeer)){
+            if(closeSet.contains(curPeer)){
                 // visited before, finish this iteration
                 continue;
             }else{
                 // add current peer to close list
-                closeList.add(curPeer);
+                closeSet.add(curPeer);
 
                 // add current peer to result dict
                 BFSResult.put(curPeer,null);

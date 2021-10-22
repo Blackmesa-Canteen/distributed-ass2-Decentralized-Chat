@@ -1,4 +1,4 @@
-package org.team54.messageBean;
+package org.team54.model;
 
 import lombok.*;
 import org.team54.utils.Constants;
