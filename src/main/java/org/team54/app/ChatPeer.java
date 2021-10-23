@@ -85,13 +85,14 @@ public class ChatPeer {
         // set client to scannnerWorker
         scannerWorker.setClient(client);
         new Thread(scannerWorker).start();
+
+
         // the client thread and the worker thread need to be started after #connet command
         // the scannerWorker will read the #connect and starts them.
 
         server.setLocalclient(client);
 
         chatRoomManager.setClientWorker(clientWorker);
-        //server.setLocalclient(client);
 
         Thread clientWorkerThread = new Thread(clientWorker);
         clientWorkerThread.start();

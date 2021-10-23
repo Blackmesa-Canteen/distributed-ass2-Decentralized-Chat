@@ -255,10 +255,7 @@ public class ChatRoomManager {
             if (room != null && srcPeer.getRoomId().equals(roomId)) {
                 ArrayList<Peer> peers = room.getPeers();
                 for (Peer peer : peers) {
-                    if(peer.equals(localPeer)){
-                        byte[] bytes = message.getBytes(StandardCharsets.UTF_8);
-                        clientWorker.processEvent(null,null,bytes,bytes.length);
-                    }else if (peerExcluded == null || !peerExcluded.equals(peer)) {
+                    if (peerExcluded == null || !peerExcluded.equals(peer)) {
                         peer.getPeerConnection().sendTextMsgToMe(message);
                     }
                 }
