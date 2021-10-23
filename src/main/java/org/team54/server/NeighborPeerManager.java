@@ -261,47 +261,51 @@ public class NeighborPeerManager {
     }
 
     /**
-     * handle neighbor disconnect
+     * handle neighbor disconnect (on one's own initiative, like QUIT command)
      *
      * @param peer
      */
     public void handleDisconnectNeighborPeer(Peer peer) {
-
-        SocketChannel socketChannel = peer.getPeerConnection().getSocketChannel();
 
         // remove living peer record
         synchronized (livingMemberPeers) {
             livingMemberPeers.remove(peer.getIdentity());
         }
 
-        // if the peer has joined a room, exit
-        if (!"".equals(peer.getRoomId())) {
-            chatRoomManager.removePeerFromRoomId(peer.getRoomId(), peer);
-        } else {
-            // if no room joined, send empty room change response to this peer only.
-            // to make sure "When the client that is disconnecting receives
-            // the RoomChange message, then it can close the connection."
-            String roomChangeResponseMsg = MessageServices.genRoomChangeResponseMsg(
-                    peer.getIdentity(),
-                    "",
-                    ""
-            );
+        PeerConnection peerConnection = peer.getPeerConnection();
 
-            peer.getPeerConnection().sendTextMsgToMe(roomChangeResponseMsg);
+        // Robust: peerConnection exists
+        if (peerConnection != null) {
+            SocketChannel socketChannel = peerConnection.getSocketChannel();
+            // if the peer has joined a room, exit
+            if (!"".equals(peer.getRoomId())) {
+                chatRoomManager.removePeerFromRoomId(peer.getRoomId(), peer);
+            } else {
+                // if no room joined, send empty room change response to this peer only.
+                // to make sure "When the client that is disconnecting receives
+                // the RoomChange message, then it can close the connection."
+                String roomChangeResponseMsg = MessageServices.genRoomChangeResponseMsg(
+                        peer.getIdentity(),
+                        "",
+                        ""
+                );
+
+                peer.getPeerConnection().sendTextMsgToMe(roomChangeResponseMsg);
+            }
+
+            // remove the peer from neighbor peer map
+            synchronized (neighborMemberPeerMap) {
+                neighborMemberPeerMap.remove(socketChannel);
+            }
+
+            // try to close this peer connection
+            peer.getPeerConnection().closeMe();
+            peer.setPeerConnection(null);
         }
-
-        // remove the peer from neighbor peer map
-        synchronized (neighborMemberPeerMap) {
-            neighborMemberPeerMap.remove(socketChannel);
-        }
-
-        // try to close this peer connection
-        peer.getPeerConnection().closeMe();
-        peer.setPeerConnection(null);
     }
 
     /**
-     * handle neighbor disconnect
+     * handle neighbor disconnect (passively, e.g. buggy connection lost)
      *
      * @param socketChannel socketChannel
      */
