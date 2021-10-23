@@ -46,8 +46,8 @@ public class NIOClient implements Runnable{
         while(alive.get()){
             try{
                 Read(socketChannel);
-                //Thread.sleep(1000);
-            }catch (IOException e){
+                Thread.sleep(1000);
+            }catch (IOException | InterruptedException e){
                 e.printStackTrace();
             }
 
@@ -63,20 +63,12 @@ public class NIOClient implements Runnable{
         socketChannel.close();
         // disconnect, connectNum -1
         connectNum -= 1;
+
+        System.out.println("Disconnected from " + this.localPeer.getPublicHostName());
         // need to set ClientBind port to -1 for next connection
         ChatPeer.setClientPort(-1);
-
-        String text = "Disconnected from " + this.localPeer.getPublicHostName();
-        if(ScannerWorker.waitingInput.get()){
-            System.out.println("\n" +  text);
-            ScannerWorker.waitingInput.set(false);
-        }else{
-            System.out.println(text);
-        }
-
         // reset values in localPeer
         resetPeer();
-
 
     }
 

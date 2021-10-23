@@ -20,22 +20,14 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class ClientWorker implements Runnable{
     public AtomicBoolean alive = new AtomicBoolean();
     public AtomicBoolean waitingQuitResponse = new AtomicBoolean();
+
     // mission queue to store mission from client thread
     private LinkedBlockingQueue<ClientDataEvent> queue = new LinkedBlockingQueue(128);
     private Peer localPeer;
-    private NIOClient client;
-
 
     public ClientWorker(Peer localPeer){
-
         this.localPeer = localPeer;
-
     }
-
-    public void setClient(NIOClient nioClient){
-        this.client = nioClient;
-    }
-
 
     @Override
     public void run(){
@@ -73,9 +65,9 @@ public class ClientWorker implements Runnable{
 
 
     private void handleData(ClientDataEvent clientdataEvent){
-        // get the received data
+        //get the received data
         String data = new String(clientdataEvent.data,0,clientdataEvent.data.length);
-        //print2Console("[debug client] received data is "+data);
+        // print2Console("[debug client] received data is "+data);
         JSONObject replyDataObject = JSONObject.parseObject(data);
 
         String type = replyDataObject.getString("type");
@@ -106,17 +98,10 @@ public class ClientWorker implements Runnable{
         if("".equals(text)){// if text is null, do not print
             return;
         }
-        try {
-            Thread.sleep(500);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
         if(ScannerWorker.waitingInput.get()){
             System.out.println("\n" +  text);
             ScannerWorker.waitingInput.set(false);
-
         }else{
-
             System.out.println(text);
         }
     }
@@ -226,8 +211,7 @@ public class ClientWorker implements Runnable{
 
         String identity = SM.getRootIdentity();
         String content = SM.getContent();
-        result = identity + " shouted: " + content;
-        //result = "[" + identity + " shouted]: " + content;
+        result = "[" + identity + " shouted]: " + content;
         return result;
     }
 
