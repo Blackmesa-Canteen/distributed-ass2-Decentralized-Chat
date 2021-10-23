@@ -1,7 +1,6 @@
 package org.team54.server;
 
 import org.team54.client.ClientWorker;
-import org.team54.client.NIOClient;
 import org.team54.model.Peer;
 import org.team54.model.Room;
 import org.team54.service.MessageServices;
@@ -41,12 +40,12 @@ public class ChatRoomManager {
     private ChatRoomManager() {
         this.liveRoomMap = new ConcurrentHashMap<>();
     }
-    public void setLocalPeer(Peer localPeer){this.localPeer = localPeer;}
-    public void setClientWorker(ClientWorker clientWorker){this.clientWorker = clientWorker;}
+
     public void setNeighborPeerManager(NeighborPeerManager neighborPeerManager) {
         this.neighborPeerManager = neighborPeerManager;
     }
-
+    public void setLocalPeer(Peer localPeer){this.localPeer = localPeer;}
+    public void setClientWorker(ClientWorker clientWorker){this.clientWorker = clientWorker;}
     /**
      * find room model by id
      *
@@ -256,11 +255,10 @@ public class ChatRoomManager {
             if (room != null && srcPeer.getRoomId().equals(roomId)) {
                 ArrayList<Peer> peers = room.getPeers();
                 for (Peer peer : peers) {
-
                     if(peer.equals(localPeer)){
                         byte[] bytes = message.getBytes(StandardCharsets.UTF_8);
                         clientWorker.processEvent(null,null,bytes,bytes.length);
-                    }else if(peerExcluded == null || !peerExcluded.equals(peer)) {
+                    }else if (peerExcluded == null || !peerExcluded.equals(peer)) {
                         peer.getPeerConnection().sendTextMsgToMe(message);
                     }
                 }
@@ -378,7 +376,7 @@ public class ChatRoomManager {
                 // unload this room's peer's reference with a new empty arraylist
                 room.setPeers(new ArrayList<>());
 
-                System.out.println("[debug] deleteRoom original peers size: " + peers.size());
+                // System.out.println("[debug] deleteRoom original peers size: " + peers.size());
 
                 for (Peer peer : peers) {
                     if (peer.getRoomId().equals(roomId)) {
