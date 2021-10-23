@@ -78,7 +78,7 @@ public class ScannerWorker implements Runnable{
                         handleRoomContent(arr);
                         break;
                     case Constants.JOIN_JSON_TYPE:
-                        handlejoin(arr);
+                        handleJoin(arr);
                         break;
                     case Constants.LIST_JSON_TYPE:
                         handleListMessage(arr);
@@ -256,7 +256,7 @@ public class ScannerWorker implements Runnable{
         }
     }
 
-    private void handlejoin(String[] arr){
+    private void handleJoin(String[] arr){
         if(arr.length==1){//if the input command only contains #join with no following arguments
             System.out.println("invalid command, #join needs 1 argument");
         }else if(arr.length == 2){//correct command paradigm
@@ -291,33 +291,7 @@ public class ScannerWorker implements Runnable{
 
 
     }
-    private void handleJoin(String[] arr){
-        try{
-            if(this.client.alive.get()==false){
-                // sockets not connected
-                System.out.println("not connected yet. try #connect operation");
-            }else{
-                if(arr.length==1){//if the input command only contains #join with no following arguments
-                    System.out.println("invalid command, #join needs 1 argument");
-                }else if(arr.length == 2){//correct command paradigm
 
-
-                    if(arr[1].equals(localPeer.getRoomId())){
-                        System.out.println("Currently in " + localPeer.getRoomId());
-                    }else{
-                        String JRM = MessageServices.genJoinRoomRequestMessage(arr[1]);
-
-
-                        this.client.Write(JRM);
-                    }
-                }else{//other unconsidered situation
-                    System.out.println("command error");
-                }
-            }
-        }catch(IOException e){
-            System.out.println("join room fails, try again later");
-        }
-    }
 
     public void handleListNeighbors(String[] arr){
         if(this.client.alive.get()==false){
