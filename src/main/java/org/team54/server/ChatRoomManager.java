@@ -1,12 +1,10 @@
 package org.team54.server;
 
-import org.team54.client.ClientWorker;
 import org.team54.model.Peer;
 import org.team54.model.Room;
 import org.team54.service.MessageServices;
 import org.team54.utils.StringUtils;
 
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -27,8 +25,6 @@ public class ChatRoomManager {
     private final ConcurrentHashMap<String, Room> liveRoomMap;
 
     private NeighborPeerManager neighborPeerManager;
-    private Peer localPeer;
-    private ClientWorker clientWorker;
     public static synchronized ChatRoomManager getInstance() {
         if (instance == null) {
             instance = new ChatRoomManager();
@@ -44,8 +40,7 @@ public class ChatRoomManager {
     public void setNeighborPeerManager(NeighborPeerManager neighborPeerManager) {
         this.neighborPeerManager = neighborPeerManager;
     }
-    public void setLocalPeer(Peer localPeer){this.localPeer = localPeer;}
-    public void setClientWorker(ClientWorker clientWorker){this.clientWorker = clientWorker;}
+
     /**
      * find room model by id
      *
@@ -394,6 +389,8 @@ public class ChatRoomManager {
 
                 // remove the room from map
                 liveRoomMap.remove(roomId);
+
+                System.out.println("Room delete success: " + roomId);
             } else {
                 System.out.println("Room delete failed: No such room.");
             }

@@ -2,8 +2,7 @@ package org.team54.app;
 
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
-import org.team54.client.ClientWorker;
-import org.team54.client.NIOClient;
+import org.team54.client.Client;
 import org.team54.client.ScannerWorker;
 import org.team54.model.Peer;
 import org.team54.server.ChatRoomManager;
@@ -11,7 +10,6 @@ import org.team54.server.ChatServer;
 import org.team54.server.MessageQueueWorker;
 import org.team54.server.NeighborPeerManager;
 import org.team54.utils.Constants;
-import org.team54.utils.StringUtils;
 
 import java.io.IOException;
 
@@ -34,7 +32,7 @@ public class ChatPeer {
 //    private static int clientPort = Constants.NON_PORT_DESIGNATED;
 
     private static ChatServer server;
-    private static NIOClient client;
+    private static Client client;
 
     private static ChatRoomManager chatRoomManager;
     private static NeighborPeerManager neighborPeerManager;
@@ -59,7 +57,7 @@ public class ChatPeer {
         neighborPeerManager = NeighborPeerManager.getInstance();
         chatRoomManager.setNeighborPeerManager(neighborPeerManager);
         neighborPeerManager.setChatRoomManager(chatRoomManager);
-        chatRoomManager.setLocalPeer(localPeer);
+
 
         server = new ChatServer(null, serverListenPort, MQWorker);
         new Thread(server).start();
@@ -67,35 +65,24 @@ public class ChatPeer {
 
         // init client logic
         /**
-         * client has three thread
+         * client has two thread
          *
          * scannerWorker thread: read user input, encode user input and send to server
-         * client thread: handle connection, NIO selecter etc. Will pass the received message
-         *                from server to clientWorker to avoid block.
-         * clientWorker thread: do the mission passed by client thread
+         * client thread: handle connection, read from server.
          *
-         * Both the client thread and clientWoker thread will not start until the scannerWorker receives
-         * the #connect command
          */
-        ClientWorker clientWorker = new ClientWorker(localPeer);
         //open a new thread for getting userinput and write
-        ScannerWorker scannerWorker = new ScannerWorker(null,null,clientWorker, localPeer);
+        ScannerWorker scannerWorker = new ScannerWorker(null, localPeer);
         // init client
-        client = new NIOClient( clientWorker,scannerWorker, localPeer);
+        client = new Client(localPeer);
         // set client to scannnerWorker
         scannerWorker.setClient(client);
         new Thread(scannerWorker).start();
+        new Thread(client).start();
 
-
-        // the client thread and the worker thread need to be started after #connet command
-        // the scannerWorker will read the #connect and starts them.
-
+        // shout 相关
         server.setLocalclient(client);
 
-        chatRoomManager.setClientWorker(clientWorker);
-
-        Thread clientWorkerThread = new Thread(clientWorker);
-        clientWorkerThread.start();
     }
 
     private static void handleArgs(String[] args) {

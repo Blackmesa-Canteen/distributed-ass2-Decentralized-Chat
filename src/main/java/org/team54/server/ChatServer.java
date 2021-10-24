@@ -2,8 +2,7 @@ package org.team54.server;
 
 import com.alibaba.fastjson.JSONException;
 import com.alibaba.fastjson.JSONObject;
-import org.team54.client.BFS;
-import org.team54.client.NIOClient;
+import org.team54.client.Client;
 import org.team54.model.Peer;
 import org.team54.service.MessageServices;
 import org.team54.utils.CharsetConvertor;
@@ -60,7 +59,7 @@ public class ChatServer implements Runnable {
     private final NeighborPeerManager neighborPeerManager;
     private final ChatRoomManager chatRoomManager;
 
-    private NIOClient localclient;
+    private Client localclient;
 
     public ChatServer(InetAddress hostAddress, int port, MessageQueueWorker MQWorker) throws IOException {
         this.hostAddress = hostAddress;
@@ -447,7 +446,7 @@ public class ChatServer implements Runnable {
         return port;
     }
 
-    public void setLocalclient(NIOClient client){
+    public void setLocalclient(Client client){
         this.localclient = client;
     }
 }

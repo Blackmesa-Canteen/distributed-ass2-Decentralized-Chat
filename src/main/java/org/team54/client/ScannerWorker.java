@@ -24,28 +24,23 @@ import com.alibaba.fastjson.JSONObject;
 import org.team54.utils.StringUtils;
 
 public class ScannerWorker implements Runnable{
-    public AtomicBoolean alive = new AtomicBoolean();
+    public static AtomicBoolean alive = new AtomicBoolean();
     public static AtomicBoolean waitingInput = new AtomicBoolean();
+
     private Scanner scanner;
-    private ClientWorker clientWorker;
     private SocketChannel socketChannel;
-    private NIOClient client;
-    private Thread clientThread;
-    private Thread workerThread;
+    private Client client;
     private ByteBuffer writeBuffer = ByteBuffer.allocate(1024);
     private Peer localPeer;
     private final ChatRoomManager chatRoomManager;
 
-
-
-    public ScannerWorker( NIOClient client, SocketChannel socketChannel, ClientWorker clientWorker, Peer localPeer) throws IOException {
+    public ScannerWorker( Client client, Peer localPeer) {
         this.scanner = new Scanner(System.in);
-        this.clientWorker = clientWorker;
-        this.socketChannel = socketChannel;
         this.client = client;
         this.localPeer = localPeer;
         this.chatRoomManager = ChatRoomManager.getInstance();
     }
+
     @Override
     public void run(){
         alive.set(true);
@@ -58,7 +53,9 @@ public class ScannerWorker implements Runnable{
 
             waitingInput.set(true);
             String message = scanner.nextLine();
+
             if("".equals(message)){continue;}
+
             if(isCommand(message)){// if the user input is command, switch cases based on the first word of input
                 String [] arr = message.substring(1).split("\\s+");
                 switch (arr[0]){
@@ -108,11 +105,11 @@ public class ScannerWorker implements Runnable{
 
     }
 
-    public void setSocketChannel(SocketChannel socketChannel) {
-        this.socketChannel = socketChannel;
-    }
+//    public void setSocketChannel(SocketChannel socketChannel) {
+//        this.socketChannel = socketChannel;
+//    }
 
-    public void setClient(NIOClient client){
+    public void setClient(Client client){
         this.client = client;
     }
 
@@ -128,6 +125,25 @@ public class ScannerWorker implements Runnable{
             System.out.println("missing connect parameter");
         }else if(arr.length == 2){
             try {
+                // if connect locally, stop local connect first
+                if(this.client.connectLocal.get() == true){
+                    if(localPeer.getRoomId().length()!=0){
+                        System.out.println("currently in a local room, please use #join \"\" to quit room first");
+                        return;
+                    }else{
+                        String quitMessaage = MessageServices.genQuitRequestMessage();
+                        this.client.Write(quitMessaage);
+                        this.client.waitingQuitResponse.set(true);
+                    }
+
+                }
+
+                // wait until disconnect from local finish
+                while( client.connectLocal.get()==true || this.client.waitingQuitResponse.get()==true){
+
+                }
+                System.out.println("[debug client] connect local is false");
+
                 // if the client has already connected to a server, return immediately
                 if(client.connectNum == 1){
                     System.out.println("already connect to " + client.getServer());
@@ -141,18 +157,11 @@ public class ScannerWorker implements Runnable{
                 String [] addressArr = arr[1].split(":");
                 InetAddress address = InetAddress.getByName(addressArr[0]);
                 int port = Integer.parseInt(addressArr[1]);
-                // if the command is connect, starts the client thread and the clientworker thread
+                // strat connection
                 this.client.startConn(-1,port,address);
-                //workerThread = new Thread(clientWorker);
-                clientThread = new Thread(client);
-                //if(!workerThread.isAlive()){workerThread.start();}
-                if(!clientThread.isAlive()){clientThread.start();}
-                // send identity to server
+                // send hostchange message to server
                 String message = MessageServices.genHostChangeRequestMessage(client.getIdentity()[0]);
-                // System.out.println("[debug client] host change message sendt is: " + message);
-                //message = "{\"type\":\"hostchange\",\"host\":\"127.0.0.1:4444\",\"hashId\":\"6u2I7chmC5F0Jd4h196G12X28l2L8P\"}";
                 this.client.Write(message);
-                // set changes to Peer
 
             } catch (IOException | ArrayIndexOutOfBoundsException e){
                 System.out.println("bad #connect command");
@@ -160,11 +169,31 @@ public class ScannerWorker implements Runnable{
 
         }else if(arr.length == 3){
             try {
+                // if connect locally, stop local connect first
+                if(this.client.connectLocal.get() == true){
+                    if(localPeer.getRoomId().length()!=0){
+                        System.out.println("currently in a local room, please use #join \"\" to quit room first");
+                        return;
+                    }else{
+                        String quitMessaage = MessageServices.genQuitRequestMessage();
+                        this.client.Write(quitMessaage);
+                        this.client.waitingQuitResponse.set(true);
+                    }
+
+                }
+
+                // wait until disconnect from local finish
+                while( client.connectLocal.get()==true || this.client.waitingQuitResponse.get()==true){
+
+                }
+                System.out.println("[debug client] connect local is false");
+
                 // if the client has already connected to a server, return immediately
                 if(client.connectNum == 1){
                     System.out.println("already connect to " + client.getServer() );
                     return;
                 }
+
                 // the input is like #connect 192.168.0.0:1234 5000
                 // arr[0] = connect, arr[1] = 192.168.0.0:1234, arr[2] = 5000
                 // addressArr[0] = 192.168.0.0
@@ -173,15 +202,12 @@ public class ScannerWorker implements Runnable{
                 InetAddress address = InetAddress.getByName(addressArr[0]);
                 int port = Integer.parseInt(addressArr[1]);
                 int localport = Integer.parseInt(arr[2]);
-                // if the command is #connect, starts the client and client worker thread
+                // start connection
                 this.client.startConn(localport,port,address);
-                //workerThread = new Thread(clientWorker);
-                clientThread = new Thread(client);
-                //if(!workerThread.isAlive()){workerThread.start();}
-                if(!clientThread.isAlive()){clientThread.start();}
-                // send identity to server
+                // send hostchange message to server
                 String message = MessageServices.genHostChangeRequestMessage(client.getIdentity()[0]);
                 this.client.Write(message);
+
             } catch (IOException | ArrayIndexOutOfBoundsException e){
                 System.out.println("bad #connect command");
             }
@@ -189,19 +215,14 @@ public class ScannerWorker implements Runnable{
     }
 
     public void handleQuit(){
-        if(this.client.alive.get()==false){
+
+        if(this.client.connectLocal.get() == true){
             System.out.println("not connected yet, try #connect command");
         }else{
             try{
                 String quitMessaage = MessageServices.genQuitRequestMessage();
                 this.client.Write(quitMessaage);
-                clientWorker.waitingQuitResponse.set(true);
-//                clientWorker.alive.set(false);
-//                client.alive.set(false);
-//                client.stop();
-//                workerThread.interrupt();
-//                clientThread.interrupt();
-
+                client.waitingQuitResponse.set(true);
             }catch(IOException e){
                 System.out.println(e.getMessage());
                 System.out.println("close fail, try again later");
@@ -212,20 +233,9 @@ public class ScannerWorker implements Runnable{
     // send user's common message to server
     private void handleMessage(String message){
         try{
-            if(this.client.alive.get()==false){
-                // sockets not connected
-                // System.out.println("not connected yet. try #connect operation");
-                if(this.localPeer.getRoomId().length() != 0){ // local peer joins a local room
-                    String relayMessage = MessageServices.genRelayMessage(localPeer.getIdentity(), message);
-
-                    chatRoomManager.broadcastMessageInRoom(localPeer,localPeer.getRoomId(),relayMessage,null);
-                }else{
-                    System.out.println("not in a room, join a room first");
-                }
-            }else if("".equals(localPeer.getRoomId())){
+            if("".equals(localPeer.getRoomId())){
                 System.out.println("please join a room to send message");
             } else{
-
                 String CommonMessage = MessageServices.genClientChatMessage(message);
                 this.client.Write(CommonMessage);
             }
@@ -236,20 +246,13 @@ public class ScannerWorker implements Runnable{
 
     private void handleRoomContent(String[] arr){
         try{
-            if(this.client.alive.get()==false){
-                // sockets not connected
-                System.out.println("not connected yet. try #connect operation");
-            }else{
-                if(arr.length==1){//if the input command only contains #Who with no following arguments
-                    System.out.println("invalid command, #who needs 1 argument");
-                }else if(arr.length == 2){//correct command paradigm
-
-                    String WM = MessageServices.genWhoQueryRequestMessage(arr[1]);
-                    this.client.Write(WM);
-
-                }else{//other unconsidered situation
-                    System.out.println("command error");
-                }
+            if(arr.length==1){//if the input command only contains #Who with no following arguments
+                System.out.println("invalid command, #who needs 1 argument");
+            }else if(arr.length == 2){//correct command paradigm
+                String WM = MessageServices.genWhoQueryRequestMessage(arr[1]);
+                this.client.Write(WM);
+            }else{//other unconsidered situation
+                System.out.println("command error");
             }
         }catch(IOException e){
             System.out.println("#who operation fails, try again later");
@@ -263,27 +266,17 @@ public class ScannerWorker implements Runnable{
             if(arr[1].equals(localPeer.getRoomId())){
                 System.out.println("Currently in " + localPeer.getRoomId());
             }else{
-                if(this.client.alive.get()==false){ // if doesn't connect to server, can join local room
-                    localPeer.setServerSideIdentity("127.0.0.1:"+ChatPeer.getServerListenPort());
-                    localPeer.setIdentity("127.0.0.1:"+ChatPeer.getServerListenPort());
-                    chatRoomManager.joinPeerToRoom(arr[1].replace("\"\"",""),localPeer);
-
-                }else{ // connect to a server ,join remote rooms
-                    String JRM;
-                    if("\"\"".equals(arr[1])){
-                        JRM = MessageServices.genJoinRoomRequestMessage("");
-                    }else{
-                        JRM = MessageServices.genJoinRoomRequestMessage(arr[1]);
-                    }
-                    try{
-                        this.client.Write(JRM);
-                    }catch (IOException e){
-                        System.out.println("join fails, try again later");
-                    }
-
+                String JRM;
+                if("\"\"".equals(arr[1])){
+                    JRM = MessageServices.genJoinRoomRequestMessage("");
+                }else{
+                    JRM = MessageServices.genJoinRoomRequestMessage(arr[1]);
                 }
-
-
+                try{
+                    this.client.Write(JRM);
+                }catch (IOException e){
+                    System.out.println("join fails, try again later");
+                }
             }
         }else{//other unconsidered situation
             System.out.println("command error");
@@ -291,7 +284,6 @@ public class ScannerWorker implements Runnable{
 
 
     }
-
 
     public void handleListNeighbors(String[] arr){
         if(this.client.alive.get()==false){
@@ -333,8 +325,8 @@ public class ScannerWorker implements Runnable{
 
 
 
-    private void handleCreateRoom(String[] arr){// local command
-        if(this.client.alive.get()==true){
+    private void handleCreateRoom(String[] arr){// local command, can only do with no connection with other servers
+        if(this.client.alive.get() == true && this.client.connectLocal.get() == false){
             System.out.println("cannot create room when having connections with other server");
             return;
         }
@@ -352,8 +344,8 @@ public class ScannerWorker implements Runnable{
         }
     }
 
-    private void handleDelete(String[] arr){ // local command, do not check connection
-        if(this.client.alive.get()==true){
+    private void handleDelete(String[] arr){ // local command, can only do with no connection with other servers
+        if(this.client.alive.get() == true && this.client.connectLocal.get() == false){
             System.out.println("cannot delete room when having connections with other server");
             return;
         }
@@ -371,10 +363,15 @@ public class ScannerWorker implements Runnable{
         }
     }
 
-    private void handleKick(String[] arr){ // local command, do not check connection
+    private void handleKick(String[] arr){ // local command, can only do with no connection with other servers
+        if(this.client.alive.get()==true && this.client.connectLocal.get() == false){
+            System.out.println("cannot kick when having connections with other server");
+            return;
+        }
         if(arr.length == 1){
             System.out.println("invalid command, #kick option needs 1 argument");
         }else if(arr.length == 2){
+
             chatRoomManager.kickPeerByPeerId(arr[1]); // cannot know if kick is success
         }else{
             System.out.println("command error");
@@ -406,12 +403,9 @@ public class ScannerWorker implements Runnable{
 
     private void handleShout(String[] arr){
         try{
-            if(this.client.alive.get()==false){
-                // sockets not connected
-                System.out.println("not connected yet. try #connect operation");
-            }else if("".equals(this.localPeer.getRoomId())){
+            if("".equals(this.localPeer.getRoomId())){
                 System.out.println("need to join a room before shout");
-            } else{
+            } else {
                 if(arr.length==1){//if the input command only contains #shout with no following arguments
                     System.out.println("invalid command, #shout needs 1 argument");
                 }else if(arr.length > 1){//correct command paradigm
