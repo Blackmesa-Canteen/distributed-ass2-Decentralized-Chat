@@ -152,7 +152,7 @@ public class ScannerWorker implements Runnable{
                 while( client.connectLocal.get()==true || this.client.waitingQuitResponse.get()==true){
 
                 }
-                System.out.println("[debug client] connect local is false");
+                // System.out.println("[debug client] connect local is false");
 
                 // if the client has already connected to a server, return immediately
                 if(client.connectNum == 1){
@@ -196,7 +196,7 @@ public class ScannerWorker implements Runnable{
                 while( client.connectLocal.get()==true || this.client.waitingQuitResponse.get()==true){
 
                 }
-                System.out.println("[debug client] connect local is false");
+                // System.out.println("[debug client] connect local is false");
 
                 // if the client has already connected to a server, return immediately
                 if(client.connectNum == 1){
