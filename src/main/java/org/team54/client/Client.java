@@ -25,6 +25,7 @@ public class Client implements Runnable{
     public AtomicBoolean alive = new AtomicBoolean();
     public AtomicBoolean connectLocal = new AtomicBoolean();
     public AtomicBoolean waitingQuitResponse = new AtomicBoolean();
+    public AtomicBoolean waitingRoomChangeResponse = new AtomicBoolean();
     // record the number of connect the client established
     // connectNum should in [0,1], cannot connect to more than 1 server
     public int connectNum = 0;
@@ -72,7 +73,7 @@ public class Client implements Runnable{
         connectNum -= 1;
 
         if(connectLocal.get() == false){ // should be silent if disconnect from local server
-            System.out.println("Disconnected from " + this.localPeer.getPublicHostName());
+            print2Console("Disconnected from " + this.localPeer.getPublicHostName());
             //alive.set(false);
         }
 
@@ -323,11 +324,7 @@ public class Client implements Runnable{
                 waitingQuitResponse.set(false);
                 connectLocal.set(false);
 
-            }else{ // if the current peer is waiting for room change response
-                /*
-                 TODO 未加入房间时被kick收到的消息和未加入房间时加入失败收到的消息相同，无法辨别
-                    [debug client] received data is {"type":"roomchange","identity":"127.0.0.1:10111","former":"","roomid":""}
-                 */
+            }else if(waitingRoomChangeResponse.get() == true){ // if the current peer send #join and is waiting for response
                 if(former.equals(roomid)){ // fail to join
                     result = "The request room is invalid or non existent";
                 }else{ // join success
@@ -339,12 +336,22 @@ public class Client implements Runnable{
                         }else{ // change room
                             result = identity + " moved from "+ former +" to "+roomid;
                         }
-
                     }
                     //update local client variables
                     this.localPeer.setFormerRoomId(this.localPeer.getRoomId());
                     this.localPeer.setRoomId(roomid);
                 }
+                // finish handling roomchange message, back to common state
+                waitingRoomChangeResponse.set(false);
+            } else{ // if the current peer is just listening
+                //在没有请求roomchange的情况下，收到本机的roomchange信息，
+                // 可能被kick或这room被删除
+                if(former.equals(roomid) && "".equals(former)){ //未加入房间时被kick
+
+                }else if(former.length() != 0 && "".equals(roomid)){ // 在房间时被踢出 或 房间被删除
+                    result = identity + " leaves "+ former;
+                }
+
 
             }
         }else{//if the current client is not the one who changes room

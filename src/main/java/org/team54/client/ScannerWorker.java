@@ -45,12 +45,22 @@ public class ScannerWorker implements Runnable{
     public void run(){
         alive.set(true);
         while(alive.get()){
-            if("".equals(this.localPeer.getRoomId()) && this.localPeer.getServerSideIdentity() == null){
-                System.out.printf(">");
+            if(client.connectLocal.get() == true){ // if connect locally, hide identity util join a room
+                if("".equals(this.localPeer.getRoomId()) && this.localPeer.getServerSideIdentity() == null){
+                    System.out.printf(">");
+                }else if("".equals(this.localPeer.getRoomId()) && this.localPeer.getServerSideIdentity() != null){
+                    System.out.printf(">");
+                } else if(!"".equals(this.localPeer.getRoomId()) && this.localPeer.getServerSideIdentity() != null){
+                    System.out.printf("[%s] %s>", this.localPeer.getRoomId(), this.localPeer.getServerSideIdentity());
+                }
             }else{
-                System.out.printf("[%s] %s>", this.localPeer.getRoomId(), this.localPeer.getServerSideIdentity());
+                if("".equals(this.localPeer.getRoomId()) && this.localPeer.getServerSideIdentity() == null){
+                    System.out.printf(">");
+                }else{
+                    System.out.printf("[%s] %s>", this.localPeer.getRoomId(), this.localPeer.getServerSideIdentity());
+                }
             }
-
+            
             waitingInput.set(true);
             String message = scanner.nextLine();
 
@@ -272,6 +282,9 @@ public class ScannerWorker implements Runnable{
                 }else{
                     JRM = MessageServices.genJoinRoomRequestMessage(arr[1]);
                 }
+
+                // set waiting for roomchange response to ture
+                client.waitingRoomChangeResponse.set(true);
                 try{
                     this.client.Write(JRM);
                 }catch (IOException e){
