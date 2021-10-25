@@ -320,7 +320,7 @@ public class Client implements Runnable{
     }
 
     private String handleRoomChangeMessage(JSONObject replyDataObject){
-        String hashID = replyDataObject.getString("hashID");
+        String hashID = replyDataObject.getString("peerHashId");
         String identity = replyDataObject.getString("identity");
         String roomid = replyDataObject.getString("roomid");
         String former = replyDataObject.getString("former");
