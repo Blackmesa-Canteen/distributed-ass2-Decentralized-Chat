@@ -60,7 +60,7 @@ public class ScannerWorker implements Runnable{
                     System.out.printf("[%s] %s>", this.localPeer.getRoomId(), this.localPeer.getServerSideIdentity());
                 }
             }
-            
+
             waitingInput.set(true);
             String message = scanner.nextLine();
 
