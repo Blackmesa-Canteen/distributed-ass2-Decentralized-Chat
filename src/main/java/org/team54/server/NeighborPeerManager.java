@@ -113,6 +113,7 @@ public class NeighborPeerManager {
         }
 
         // update peer info
+        peer.setHashId(incomingHashId);
         peer.setListenPort(listenPort);
         peer.setLocalHostName(localHostString);
         peer.setGotListenPort(true);
