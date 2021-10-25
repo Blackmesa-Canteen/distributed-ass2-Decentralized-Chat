@@ -403,7 +403,7 @@ public class ScannerWorker implements Runnable{
             // start search net
             BFS bfs = new BFS();
             try{
-                HashMap<String, HashMap> BFSResult = bfs.search(localPeer);
+                HashMap<String, HashMap> BFSResult = bfs.search(localPeer,client);
                 for(String peerKey:BFSResult.keySet()){
                     System.out.println(peerKey);
                     HashMap<String, Integer> roomMap =  BFSResult.get(peerKey);

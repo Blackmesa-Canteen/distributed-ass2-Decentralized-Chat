@@ -35,7 +35,7 @@ public class BFS implements Runnable {
 
     }
 
-    public HashMap search(Peer localPeer) throws InterruptedException, IOException {
+    public HashMap search(Peer localPeer, Client localClient) throws InterruptedException, IOException {
         HashMap<String,HashMap> BFSResult = new HashMap<>();
         // HashMap<String,String> roomContent = new HashMap<>();
 
@@ -48,18 +48,18 @@ public class BFS implements Runnable {
         LinkedBlockingQueue<String> queue = new LinkedBlockingQueue(128);
 
         // add root node, which is the localPeer
-        //queue.offer(localPeer.getPublicHostName() + ":" + localPeer.getListenPort());
+        queue.offer(localPeer.getPublicHostName() + ":" + localPeer.getListenPort());
         // should not connect to localPeer
         // thus, get the local neighborPeerManager to get localPeer's neighbor
         // push them into the queue
-        List<Peer> allNeighborPeers = neighborPeerManager.getAllNeighborPeers(localPeer);
-        for(Peer peer: allNeighborPeers){
-            // get identity
-            String hostText = peer.getPublicHostName() + ":" + peer.getListenPort();
-            // push child to queue
-            queue.offer(hostText);
-            // System.out.println("[debug client] pushed peer is: " + hostText);
-        }
+//        List<Peer> allNeighborPeers = neighborPeerManager.getAllNeighborPeers(localPeer);
+//        for(Peer peer: allNeighborPeers){
+//            // get identity
+//            String hostText = peer.getPublicHostName() + ":" + peer.getListenPort();
+//            // push child to queue
+//            queue.offer(hostText);
+//            // System.out.println("[debug client] pushed peer is: " + hostText);
+//        }
 
         while(!queue.isEmpty()){
             // take the first peer from the queue, find children

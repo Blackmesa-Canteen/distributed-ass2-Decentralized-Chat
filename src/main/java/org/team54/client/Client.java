@@ -7,6 +7,7 @@ import org.team54.messageBean.RoomListMessage;
 import org.team54.messageBean.ServerRespondNeighborsMessage;
 import org.team54.messageBean.ShoutMessage;
 import org.team54.model.Peer;
+import org.team54.server.NeighborPeerManager;
 import org.team54.service.MessageServices;
 import org.team54.utils.Constants;
 
@@ -34,11 +35,13 @@ public class Client implements Runnable{
 
     private Peer localPeer;
     private SocketChannel socketChannel;
+    private NeighborPeerManager neighborPeerManager;
     private ByteBuffer writeBuffer = ByteBuffer.allocate(2048);
     private ByteBuffer readBuffer = ByteBuffer.allocate(2048);
 
     public Client(Peer localPeer){
         this.localPeer = localPeer;
+        this.neighborPeerManager = NeighborPeerManager.getInstance();
     }
 
     @Override
@@ -117,23 +120,35 @@ public class Client implements Runnable{
 
             localPeer.setPublicHostName(socketChannel.getRemoteAddress().toString().split(":")[0].replace("localhost","").replace("/",""));
             localPeer.setOutgoingPort(socketChannel.socket().getLocalPort());
-            localPeer.setLocalHostName(address.toString().split(":")[0].replace("localhost","").replace("/",""));
+            //localPeer.setLocalHostName(address.toString().split(":")[0].replace("localhost","").replace("/",""));
+            localPeer.setLocalHostName(socketChannel.getLocalAddress().toString().split(":")[0].replace("localhost","").replace("/",""));
             localPeer.setIdentity(localPeer.getLocalHostName()+":"+localPeer.getListenPort());
             localPeer.setServerSideIdentity(localPeer.getPublicHostName()+":"+localPeer.getOutgoingPort());
 
-            // System.out.println("[debug client] localhostName : " + localPeer.getLocalHostName());
-            // System.out.println("[debug client] outgoingPort : " + localPeer.getOutgoingPort());
-            // System.out.println("[debug client] listeningPort : " + localPeer.getListenPort());
-            // System.out.println("[debug client] identity : " + localPeer.getIdentity());
-            // System.out.println("[debug client] serverSideIdentity : " + localPeer.getServerSideIdentity());
+//            System.out.println("[debug client] publicHostName : " + localPeer.getPublicHostName());
+//             System.out.println("[debug client] localhostName : " + localPeer.getLocalHostName());
+//             System.out.println("[debug client] outgoingPort : " + localPeer.getOutgoingPort());
+//             System.out.println("[debug client] listeningPort : " + localPeer.getListenPort());
+//             System.out.println("[debug client] identity : " + localPeer.getIdentity());
+//             System.out.println("[debug client] serverSideIdentity : " + localPeer.getServerSideIdentity());
 
             // record the success connection, connect to sever, connectNum +1
             connectNum += 1;
         }else{
             System.out.println("connect fails, maybe bad server address");
         }
+
+        Peer masterPeer = Peer.builder().
+                listenPort(port).
+                localHostName(address.toString().replace("localhost","").replace("/","")).
+                publicHostName(address.toString().replace("localhost","").replace("/","")).
+                build();
+        neighborPeerManager.setMasterPeer(masterPeer);
+
         // System.out.println("[debug client] finish connect");
         return socketChannel;
+        //set master Peer
+
 
     }
 
@@ -147,6 +162,8 @@ public class Client implements Runnable{
                 startConn(this.localPeer.getOutgoingPort(),this.localPeer.getListenPort(),address);
                 String hostChageMessage = MessageServices.genHostChangeRequestMessage(getIdentity()[0]);
                 Write(hostChageMessage);
+
+
             } catch (UnknownHostException e) {
                 System.out.println("[debug client] localhost not found when connecting itself");
             } catch (IOException e) {
