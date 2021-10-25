@@ -161,9 +161,6 @@ public class ChatServer implements Runnable {
                     // put in the MQ waiting for running
                     // handle logic is in 'handleRequest' method that is in this ChatServer class
                     MQWorker.handleIncomingTextMessage(this, srcPeer, incomingString);
-                } else {
-                    // cancel the non-owner connection key
-                    key.cancel();
                 }
             }
         } catch (Throwable t) {

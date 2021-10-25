@@ -288,7 +288,8 @@ public class NeighborPeerManager {
                 String roomChangeResponseMsg = MessageServices.genRoomChangeResponseMsg(
                         peer.getIdentity(),
                         "",
-                        ""
+                        "",
+                        peer.getHashId()
                 );
 
                 peer.getPeerConnection().sendTextMsgToMe(roomChangeResponseMsg);
