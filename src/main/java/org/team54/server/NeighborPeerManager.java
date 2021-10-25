@@ -302,8 +302,6 @@ public class NeighborPeerManager {
             // try to close this peer connection
             peer.getPeerConnection().closeMe();
             peer.setPeerConnection(null);
-
-            System.out.println("[debug] a connection has been successfully quitted.");
         }
     }
 
