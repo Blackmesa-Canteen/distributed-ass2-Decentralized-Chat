@@ -257,13 +257,19 @@ public class Client implements Runnable{
     }
 
     private String handleRoomContentsMessage(JSONObject replyDataObject){
+        String result = "";
         List<String> idList = replyDataObject.getObject("identities",List.class);
 
         String identities = "";
         for(String identity:idList){
             identities += identity+" ";
         }
-        String result = replyDataObject.get("roomid") +" contains " + identities;
+        if ("".equals(identities)){
+            result = replyDataObject.get("roomid") + " is empty";
+        }else{
+            result = replyDataObject.get("roomid") + " contains " + identities;
+        }
+
         return result;
     }
 
