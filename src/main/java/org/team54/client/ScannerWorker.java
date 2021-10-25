@@ -104,6 +104,7 @@ public class ScannerWorker implements Runnable{
                         break;
                     case Constants.HELP_TYPE:
                         handleHelp(arr);
+                        break;
                     default:
                         System.out.println("no such command, please check");
                 }
