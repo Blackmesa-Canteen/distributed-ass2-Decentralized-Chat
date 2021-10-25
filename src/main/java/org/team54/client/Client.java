@@ -320,11 +320,13 @@ public class Client implements Runnable{
     }
 
     private String handleRoomChangeMessage(JSONObject replyDataObject){
+        String hashID = replyDataObject.getString("hashID");
         String identity = replyDataObject.getString("identity");
         String roomid = replyDataObject.getString("roomid");
         String former = replyDataObject.getString("former");
         String result = "";
-        if(identity.equals(this.localPeer.getServerSideIdentity())){//if the current client is the one who changes room
+        if(this.localPeer.getHashId().equals(hashID)){
+        //if(identity.equals(this.localPeer.getServerSideIdentity())){//if the current client is the one who changes room
             if(waitingQuitResponse.get() == true){ // if the current peer is waiting for quit response
                 if(this.localPeer.getRoomId().length() != 0) {//quit when in a room
                     result = identity + " leaves " + this.localPeer.getRoomId();
