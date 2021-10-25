@@ -55,7 +55,7 @@ public class Client implements Runnable{
                     connectLocal();
                 }
                 Read(socketChannel);
-                //Thread.sleep(100);
+                // Thread.sleep(100);
             }catch (IOException e){
                 e.printStackTrace();
             }
@@ -84,55 +84,61 @@ public class Client implements Runnable{
         resetPeer();
     }
 
-    public SocketChannel startConn(int localport, int port, InetAddress address) throws IOException{
-        // init a socketchannel and set to NIO mode
-        SocketChannel socketChannel = SocketChannel.open();
-        socketChannel.configureBlocking(false);
-        // bind local port to the socket
-        // if localport is -1, do not bind, establish the connect with random localport
-        if(localport!=-1){
-            // init localaddress for socket to bind with
-            InetSocketAddress localaddress = new InetSocketAddress("127.0.0.1",localport);
-            // let the bond port can be used in TIME_WAIT status after disconnect
-            socketChannel.setOption(StandardSocketOptions.SO_REUSEADDR, true);
-            socketChannel.bind(localaddress);
+    public SocketChannel startConn(int localport, int port, InetAddress address){
+        try{
+            // init a socketchannel and set to NIO mode
+            SocketChannel socketChannel = SocketChannel.open();
+            socketChannel.configureBlocking(false);
+            // bind local port to the socket
+            // if localport is -1, do not bind, establish the connect with random localport
+            if(localport!=-1){
+                // init localaddress for socket to bind with
+                InetSocketAddress localaddress = new InetSocketAddress("127.0.0.1",localport);
+                // let the bond port can be used in TIME_WAIT status after disconnect
+                socketChannel.setOption(StandardSocketOptions.SO_REUSEADDR, true);
+                socketChannel.bind(localaddress);
 
+            }
+
+            // server's address, address+port e.g. 127.0.0.1:1234,
+            InetSocketAddress isa = new InetSocketAddress(address,port);
+            System.out.println("[debug client] server address is: " + isa);
+            socketChannel.connect(isa);
+            socketChannel.finishConnect();
+
+            this.socketChannel = socketChannel;
+
+            if(socketChannel.isConnected()){
+                // set changes to localPeer
+
+                localPeer.setPublicHostName(socketChannel.getRemoteAddress().toString().split(":")[0].replace("localhost","").replace("/",""));
+                localPeer.setOutgoingPort(socketChannel.socket().getLocalPort());
+                localPeer.setLocalHostName(address.toString().split(":")[0].replace("localhost","").replace("/",""));
+                localPeer.setIdentity(localPeer.getLocalHostName()+":"+localPeer.getListenPort());
+                localPeer.setServerSideIdentity(localPeer.getPublicHostName()+":"+localPeer.getOutgoingPort());
+
+                // System.out.println("[debug client] localhostName : " + localPeer.getLocalHostName());
+                // System.out.println("[debug client] outgoingPort : " + localPeer.getOutgoingPort());
+                // System.out.println("[debug client] listeningPort : " + localPeer.getListenPort());
+                // System.out.println("[debug client] identity : " + localPeer.getIdentity());
+                // System.out.println("[debug client] serverSideIdentity : " + localPeer.getServerSideIdentity());
+
+                // record the success connection, connect to sever, connectNum +1
+                connectNum += 1;
+            }else{
+                System.out.println("connect fails, maybe bad server address");
+            }
+            // System.out.println("[debug client] finish connect");
+            return socketChannel;
+        }catch (IOException e){
+            e.printStackTrace();
         }
-
-        // server's address, address+port e.g. 127.0.0.1:1234,
-        InetSocketAddress isa = new InetSocketAddress(address,port);
-
-        socketChannel.connect(isa);
-        socketChannel.finishConnect();
-
-        this.socketChannel = socketChannel;
-
-        if(socketChannel.isConnected()){
-            // set changes to localPeer
-
-            localPeer.setPublicHostName(socketChannel.getRemoteAddress().toString().split(":")[0].replace("localhost","").replace("/",""));
-            localPeer.setOutgoingPort(socketChannel.socket().getLocalPort());
-            localPeer.setLocalHostName(address.toString().split(":")[0].replace("localhost","").replace("/",""));
-            localPeer.setIdentity(localPeer.getLocalHostName()+":"+localPeer.getListenPort());
-            localPeer.setServerSideIdentity(localPeer.getPublicHostName()+":"+localPeer.getOutgoingPort());
-
-            // System.out.println("[debug client] localhostName : " + localPeer.getLocalHostName());
-            // System.out.println("[debug client] outgoingPort : " + localPeer.getOutgoingPort());
-            // System.out.println("[debug client] listeningPort : " + localPeer.getListenPort());
-            // System.out.println("[debug client] identity : " + localPeer.getIdentity());
-            // System.out.println("[debug client] serverSideIdentity : " + localPeer.getServerSideIdentity());
-
-            // record the success connection, connect to sever, connectNum +1
-            connectNum += 1;
-        }else{
-            System.out.println("connect fails, maybe bad server address");
-        }
-        // System.out.println("[debug client] finish connect");
-        return socketChannel;
+        return null;
     }
 
     public void connectLocal(){
         if(socketChannel == null || !socketChannel.isConnected()){
+            // System.out.println("[debug client] start connect local");
             // if no connection, try to connect local peer
             try{
                 connectLocal.set(true);
@@ -143,7 +149,7 @@ public class Client implements Runnable{
             } catch (IOException e) {
                 System.out.println("[debug client] connect local fails");
             }
-
+            // System.out.println("[debug client] connect local success");
         }
     }
 
@@ -178,6 +184,8 @@ public class Client implements Runnable{
         if(readNum == -1){
             // System.out.println("[debug client] in client, bad read, socketchannel close");
             disConnect();
+
+
             return;
         }
         // pass the message to client worker

@@ -48,7 +48,7 @@ public class BFS implements Runnable {
         LinkedBlockingQueue<String> queue = new LinkedBlockingQueue(128);
 
         // add root node, which is the localPeer
-        // queue.offer(localPeer);
+        //queue.offer(localPeer.getPublicHostName() + ":" + localPeer.getListenPort());
         // should not connect to localPeer
         // thus, get the local neighborPeerManager to get localPeer's neighbor
         // push them into the queue

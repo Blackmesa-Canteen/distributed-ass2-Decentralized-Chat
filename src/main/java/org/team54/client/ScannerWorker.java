@@ -175,6 +175,7 @@ public class ScannerWorker implements Runnable{
                 this.client.Write(message);
                 this.client.inConnectProcess.set(false);
             } catch (IOException | ArrayIndexOutOfBoundsException e){
+                e.printStackTrace();
                 System.out.println("bad #connect command");
             }
 
@@ -428,7 +429,7 @@ public class ScannerWorker implements Runnable{
                     for(int i = 1; i<arr.length;i++){
                         content += arr[i] + " ";
                     }
-                    String SM = MessageServices.genRootShoutChatRequestMessage(this.localPeer.getHashId(),content.trim());
+                    String SM = MessageServices.genRootShoutChatRequestMessage(StringUtils.genHashId(),content.trim());
                     this.client.Write(SM);
                 }else{//other unconsidered situation
                     System.out.println("command error");
