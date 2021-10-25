@@ -7,6 +7,7 @@ import org.team54.messageBean.RoomListMessage;
 import org.team54.messageBean.ServerRespondNeighborsMessage;
 import org.team54.messageBean.ShoutMessage;
 import org.team54.model.Peer;
+import org.team54.service.MessageServices;
 import org.team54.utils.Constants;
 
 import java.io.IOException;
@@ -118,7 +119,7 @@ public class Client implements Runnable{
             localPeer.setOutgoingPort(socketChannel.socket().getLocalPort());
             localPeer.setLocalHostName(address.toString().split(":")[0].replace("localhost","").replace("/",""));
             localPeer.setIdentity(localPeer.getLocalHostName()+":"+localPeer.getListenPort());
-            localPeer.setServerSideIdentity(localPeer.getPublicHostName()+":"+localPeer.getOutgoingPort());
+            //localPeer.setServerSideIdentity(localPeer.getPublicHostName()+":"+localPeer.getOutgoingPort());
 
             // System.out.println("[debug client] localhostName : " + localPeer.getLocalHostName());
             // System.out.println("[debug client] outgoingPort : " + localPeer.getOutgoingPort());
@@ -134,7 +135,6 @@ public class Client implements Runnable{
         // System.out.println("[debug client] finish connect");
         return socketChannel;
 
-
     }
 
     public void connectLocal(){
@@ -145,6 +145,8 @@ public class Client implements Runnable{
                 connectLocal.set(true);
                 InetAddress address = InetAddress.getByName("localhost");
                 startConn(this.localPeer.getOutgoingPort(),this.localPeer.getListenPort(),address);
+                String hostChageMessage = MessageServices.genHostChangeRequestMessage(getIdentity()[0]);
+                Write(hostChageMessage);
             } catch (UnknownHostException e) {
                 System.out.println("[debug client] localhost not found when connecting itself");
             } catch (IOException e) {
@@ -194,7 +196,7 @@ public class Client implements Runnable{
             //get the received data
             String data = new String(readBuffer.array(),0,readNum);
 
-            // print2Console("[debug client] received data is "+data);
+            print2Console("[debug client] received data is "+data);
             JSONObject replyDataObject = JSONObject.parseObject(data);
 
             //start to handle data
@@ -325,6 +327,8 @@ public class Client implements Runnable{
         String roomid = replyDataObject.getString("roomid");
         String former = replyDataObject.getString("former");
         String result = "";
+        // System.out.println("[debug client] received hashID: " + hashID);
+        // System.out.println("[debug client] local hashID: " + this.localPeer.getHashId());
         if(this.localPeer.getHashId().equals(hashID)){
         //if(identity.equals(this.localPeer.getServerSideIdentity())){//if the current client is the one who changes room
             if(waitingQuitResponse.get() == true){ // if the current peer is waiting for quit response

@@ -23,6 +23,7 @@ import com.alibaba.fastjson.JSONException;
 import com.alibaba.fastjson.JSONObject;
 import org.team54.utils.StringUtils;
 
+
 public class ScannerWorker implements Runnable{
     public static AtomicBoolean alive = new AtomicBoolean();
     public static AtomicBoolean waitingInput = new AtomicBoolean();
@@ -154,9 +155,8 @@ public class ScannerWorker implements Runnable{
 
                 // wait until disconnect from local finish
                 while( client.connectLocal.get()==true || this.client.waitingQuitResponse.get()==true){
-
+                    //System.out.println(client.waitingQuitResponse.get());
                 }
-                // System.out.println("[debug client] connect local is false");
 
                 // if the client has already connected to a server, return immediately
                 if(client.connectNum == 1){
@@ -175,6 +175,7 @@ public class ScannerWorker implements Runnable{
                 this.client.startConn(Constants.NON_PORT_DESIGNATED,port,address);
                 // send hostchange message to server
                 String message = MessageServices.genHostChangeRequestMessage(client.getIdentity()[0]);
+                System.out.println("[debug client] message to server is !!!!: " + message);
                 this.client.Write(message);
                 this.client.inConnectProcess.set(false);
             } catch (IOException | ArrayIndexOutOfBoundsException e){
