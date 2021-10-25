@@ -175,7 +175,7 @@ public class ScannerWorker implements Runnable{
                 this.client.startConn(Constants.NON_PORT_DESIGNATED,port,address);
                 // send hostchange message to server
                 String message = MessageServices.genHostChangeRequestMessage(client.getIdentity()[0]);
-                System.out.println("[debug client] message to server is !!!!: " + message);
+
                 this.client.Write(message);
                 this.client.inConnectProcess.set(false);
             } catch (IOException | ArrayIndexOutOfBoundsException e){

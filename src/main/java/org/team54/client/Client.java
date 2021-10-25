@@ -119,7 +119,7 @@ public class Client implements Runnable{
             localPeer.setOutgoingPort(socketChannel.socket().getLocalPort());
             localPeer.setLocalHostName(address.toString().split(":")[0].replace("localhost","").replace("/",""));
             localPeer.setIdentity(localPeer.getLocalHostName()+":"+localPeer.getListenPort());
-            //localPeer.setServerSideIdentity(localPeer.getPublicHostName()+":"+localPeer.getOutgoingPort());
+            localPeer.setServerSideIdentity(localPeer.getPublicHostName()+":"+localPeer.getOutgoingPort());
 
             // System.out.println("[debug client] localhostName : " + localPeer.getLocalHostName());
             // System.out.println("[debug client] outgoingPort : " + localPeer.getOutgoingPort());
@@ -196,7 +196,7 @@ public class Client implements Runnable{
             //get the received data
             String data = new String(readBuffer.array(),0,readNum);
 
-            print2Console("[debug client] received data is "+data);
+            // print2Console("[debug client] received data is "+data);
             JSONObject replyDataObject = JSONObject.parseObject(data);
 
             //start to handle data
