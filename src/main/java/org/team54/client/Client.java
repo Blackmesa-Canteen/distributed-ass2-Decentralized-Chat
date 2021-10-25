@@ -26,6 +26,7 @@ public class Client implements Runnable{
     public AtomicBoolean connectLocal = new AtomicBoolean();
     public AtomicBoolean waitingQuitResponse = new AtomicBoolean();
     public AtomicBoolean waitingRoomChangeResponse = new AtomicBoolean();
+    public AtomicBoolean inConnectProcess = new AtomicBoolean();
     // record the number of connect the client established
     // connectNum should in [0,1], cannot connect to more than 1 server
     public int connectNum = 0;
@@ -50,12 +51,12 @@ public class Client implements Runnable{
         while(alive.get()){
 
             try{
-                if(socketChannel == null || !socketChannel.isConnected()){ // if no connection, connect locally
+                if(inConnectProcess.get() == false && (socketChannel == null || !socketChannel.isConnected())){ // if no connection, connect locally
                     connectLocal();
                 }
                 Read(socketChannel);
-                Thread.sleep(100);
-            }catch (IOException | InterruptedException e){
+                //Thread.sleep(100);
+            }catch (IOException e){
                 e.printStackTrace();
             }
 

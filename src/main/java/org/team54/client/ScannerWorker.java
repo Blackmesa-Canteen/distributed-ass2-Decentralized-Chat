@@ -135,6 +135,7 @@ public class ScannerWorker implements Runnable{
             System.out.println("missing connect parameter");
         }else if(arr.length == 2){
             try {
+                this.client.inConnectProcess.set(true);
                 // if connect locally, stop local connect first
                 if(this.client.connectLocal.get() == true){
                     if(localPeer.getRoomId().length()!=0){
@@ -172,13 +173,14 @@ public class ScannerWorker implements Runnable{
                 // send hostchange message to server
                 String message = MessageServices.genHostChangeRequestMessage(client.getIdentity()[0]);
                 this.client.Write(message);
-
+                this.client.inConnectProcess.set(false);
             } catch (IOException | ArrayIndexOutOfBoundsException e){
                 System.out.println("bad #connect command");
             }
 
         }else if(arr.length == 3){
             try {
+                this.client.inConnectProcess.set(true);
                 // if connect locally, stop local connect first
                 if(this.client.connectLocal.get() == true){
                     if(localPeer.getRoomId().length()!=0){
@@ -217,7 +219,7 @@ public class ScannerWorker implements Runnable{
                 // send hostchange message to server
                 String message = MessageServices.genHostChangeRequestMessage(client.getIdentity()[0]);
                 this.client.Write(message);
-
+                this.client.inConnectProcess.set(false);
             } catch (IOException | ArrayIndexOutOfBoundsException e){
                 System.out.println("bad #connect command");
             }
