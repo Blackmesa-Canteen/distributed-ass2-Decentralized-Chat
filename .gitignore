@@ -2,3 +2,8 @@
 /.gradle/
 /.idea/
 /build/
+out/artifacts/distributed_ass2_Decentralized_Chat_main_jar/peer.jar
+*.class
+build/classes/java/main/org/team54/server/NeighborPeerManager.class
+*.bin
+*.class
