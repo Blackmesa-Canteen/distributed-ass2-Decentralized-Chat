@@ -102,6 +102,8 @@ public class ScannerWorker implements Runnable{
                     case Constants.SHOUT_JSON_TYPE:
                         handleShout(arr);
                         break;
+                    case Constants.HELP_TYPE:
+                        handleHelp(arr);
                     default:
                         System.out.println("no such command, please check");
                 }
@@ -168,8 +170,8 @@ public class ScannerWorker implements Runnable{
                 String [] addressArr = arr[1].split(":");
                 InetAddress address = InetAddress.getByName(addressArr[0]);
                 int port = Integer.parseInt(addressArr[1]);
-                // strat connection
-                this.client.startConn(-1,port,address);
+                // strat connection， with random port allocated by OS
+                this.client.startConn(Constants.NON_PORT_DESIGNATED,port,address);
                 // send hostchange message to server
                 String message = MessageServices.genHostChangeRequestMessage(client.getIdentity()[0]);
                 this.client.Write(message);
@@ -440,6 +442,24 @@ public class ScannerWorker implements Runnable{
         }
     }
 
-
+    private void handleHelp(String[] arr){
+        if(arr.length == 1) {
+            // print help info
+            System.out.println("#help - list this information\n" +
+                    "#createroom [room name] - local command, create a room on current peer\n" +
+                    "#kick [peer identity] - local command, kick a peer from current room\n" +
+                    "#delete [room name] - local command, delete the room\n" +
+                    "#connect IP[:port] [local port] - connect to another peer\n" +
+                    "#quit - disconnect from a peer\n" +
+                    "#join [room name] - join a room, join \"\" to quit a room\n" +
+                    "#who [room name] - list room members\n" +
+                    "#list - list all the rooms\n" +
+                    "#listneighbors - list neighbors\n" +
+                    "#searchnetwork - search all reachable peer in net\n" +
+                    "#shout [message] - pass message to all reachable peers");
+        }else{
+            System.out.println("command error");
+        }
+    }
 
 }
