@@ -164,11 +164,11 @@ public class ChatServer implements Runnable {
                 }
             }
         } catch (Throwable t) {
-            t.printStackTrace();
+//            t.printStackTrace();
             // close buggy channel
             if (socketChannel != null) {
 //                socketChannel.close();
-                 // System.out.println("[debug] closed a buggy socket");
+//                 System.out.println("[debug] closed a buggy socket");
                 neighborPeerManager.handleDisconnectNeighborSocketChannel(socketChannel);
             }
         }
@@ -219,9 +219,9 @@ public class ChatServer implements Runnable {
 
                     // Hostchange信息,client连接后立刻会发送过来, 用来给Peer model赋予listening port信息
                 } else if (requestType.equals(Constants.HOST_CHANGE_JSON_TYPE)) {
+                    // System.out.println("[debug] server got hostchange message");
                     String host = requestDataObject.getString("host");
                     String peerHashId = requestDataObject.getString("hashId");
-                    System.out.println("[debug] server got hostchange message, Peer hashID: " + peerHashId);
                     if (host == null || peerHashId == null) {
                         throw new JSONException("Missing attributes");
                     }
