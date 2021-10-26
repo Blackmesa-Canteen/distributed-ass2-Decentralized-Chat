@@ -1,9 +1,12 @@
 plugins {
     id 'java'
+    id 'java-library'
 }
 
 group 'org.team54'
-version 'Decentralized-Chat'
+version ''
+
+sourceCompatibility = 1.11
 
 repositories {
     mavenCentral()
@@ -26,6 +29,19 @@ dependencies {
 
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.8.1'
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.8.1'
+}
+
+tasks.named('jar') {
+    manifest {
+        attributes('Implementation-Title': project.name,
+                'Main-Class': 'org.team54.app.ChatPeer'
+        )
+    }
+
+    // fat jar with all dependencies
+    from {
+        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it)}
+    }
 }
 
 test {
