@@ -43,12 +43,11 @@ public class ScannerWorker implements Runnable{
         this.chatRoomManager = ChatRoomManager.getInstance();
     }
 
-    @SneakyThrows
+
     @Override
     public void run(){
         alive.set(true);
         while(alive.get()){
-            Thread.sleep(200);
             if(client.connectLocal.get() == true){ // if connect locally, hide identity util join a room
                 if("".equals(this.localPeer.getRoomId()) && this.localPeer.getServerSideIdentity() == null){
                     System.out.printf(">");
@@ -142,6 +141,7 @@ public class ScannerWorker implements Runnable{
             System.out.println("missing connect parameter");
         }else if(arr.length == 2){
             try {
+                Thread.sleep(200);
                 this.client.inConnectProcess.set(true);
                 // if connect locally, stop local connect first
                 if(this.client.connectLocal.get() == true){
@@ -182,7 +182,7 @@ public class ScannerWorker implements Runnable{
 
                 this.client.Write(message);
                 this.client.inConnectProcess.set(false);
-            } catch (IOException | ArrayIndexOutOfBoundsException e){
+            } catch (IOException | ArrayIndexOutOfBoundsException | InterruptedException e){
                 e.printStackTrace();
                 System.out.println("bad #connect command");
             }
