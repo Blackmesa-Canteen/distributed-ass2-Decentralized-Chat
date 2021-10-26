@@ -186,14 +186,14 @@ public class BFS implements Runnable {
     private boolean connect(int port, InetAddress address) throws IOException  {
         // init a socketchannel and set to NIO mode
         SocketChannel socketChannel = SocketChannel.open();
-        socketChannel.configureBlocking(false);
+//        socketChannel.configureBlocking(false);
 
         // server's address, address+port e.g. 127.0.0.1:1234,
         InetSocketAddress isa = new InetSocketAddress(address,port);
         socketChannel.configureBlocking(true); //阻塞连接
         socketChannel.connect(isa);
-        socketChannel.finishConnect();
-        socketChannel.configureBlocking(false); //阻塞连接
+//        socketChannel.finishConnect();
+//        socketChannel.configureBlocking(false); //阻塞连接
         if(socketChannel.isConnected()){
             this.searchChannel = socketChannel;
             return true;
