@@ -12,6 +12,7 @@ import org.team54.model.Peer;
 import org.team54.server.ChatServer;
 import org.team54.server.NeighborPeerManager;
 import org.team54.service.MessageServices;
+import org.team54.utils.CharsetConvertor;
 import org.team54.utils.Constants;
 
 import java.io.IOException;
@@ -20,6 +21,7 @@ import java.net.InetSocketAddress;
 import java.net.StandardSocketOptions;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
+import java.nio.CharBuffer;
 import java.nio.channels.SocketChannel;
 import java.nio.charset.StandardCharsets;
 import java.util.HashSet;
@@ -194,10 +196,13 @@ public class Client implements Runnable{
             System.out.println("not connected yet");
             return;
         }
-        writeBuffer.clear();
-        writeBuffer.put(message.getBytes(StandardCharsets.UTF_8));
-        writeBuffer.flip();
-        this.socketChannel.write(writeBuffer);
+        this.socketChannel.write(CharsetConvertor.encode(
+                CharBuffer.wrap(message)
+        ));
+//        writeBuffer.clear();
+//        writeBuffer.put(message.getBytes(StandardCharsets.UTF_8));
+//        writeBuffer.flip();
+//        this.socketChannel.write(writeBuffer);
     }
 
 
