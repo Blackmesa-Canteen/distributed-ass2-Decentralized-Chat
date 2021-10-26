@@ -82,11 +82,12 @@ public class NeighborPeerManager {
 
         int listenPort = 0;
         String localHostString = "";
+//        System.out.println("[debug] handle incoming hostchange message.");
         if (incomingHost != null) {
             listenPort = StringUtils.parsePortNumFromHostText(incomingHost);
             localHostString = StringUtils.parseHostStringFromHostText(incomingHost);
-            // System.out.println("[debug] incomingHost: " + incomingHost);
-            // System.out.println("[debug] server got listen port: " + listenPort);
+//            System.out.println("[debug] incomingHost: " + incomingHost);
+//            System.out.println("[debug] server got listen port: " + listenPort);
         }
 
         // incomingHost is private address,
@@ -112,6 +113,8 @@ public class NeighborPeerManager {
         }
 
         // update peer info
+//        System.out.println("[debug] update hashId: " + incomingHashId);
+        peer.setHashId(incomingHashId);
         peer.setListenPort(listenPort);
         peer.setLocalHostName(localHostString);
         peer.setGotListenPort(true);
@@ -151,7 +154,7 @@ public class NeighborPeerManager {
 //            String hostText = remoteAddress.getHostString() + ":" + remoteAddress.getPort();
             String hostText = StringUtils.getHostTextFromInetSocketAddress(remoteAddress);
 
-            // System.out.println("[debug] new Peer identity: " + hostText);
+//             System.out.println("[debug] new Peer identity: " + hostText);
 
             Peer peerInstance = Peer.builder()
                     .identity(hostText)
@@ -198,8 +201,8 @@ public class NeighborPeerManager {
                 livingMemberPeers.putIfAbsent(peerInstance.getIdentity(), peerInstance);
             }
 
-            // System.out.println("[debug] server has put new peer in neighbor");
-            // System.out.println("[debug] server has put new connection " + peerInstance.toString() + " in server living peers.");
+//            System.out.println("[debug] server has put new peer in neighbor");
+//            System.out.println("[debug] server has put new connection " + peerInstance.toString() + " in server living peers.");
 
         } catch (IOException e) {
             System.out.println("err in registerNewSocketChannelAsNeighbor");
@@ -284,10 +287,12 @@ public class NeighborPeerManager {
                 // if no room joined, send empty room change response to this peer only.
                 // to make sure "When the client that is disconnecting receives
                 // the RoomChange message, then it can close the connection."
+//                System.out.println("[debug] disconnect roomchange peer hashId: " + peer.getHashId());
                 String roomChangeResponseMsg = MessageServices.genRoomChangeResponseMsg(
                         peer.getIdentity(),
                         "",
-                        ""
+                        "",
+                        peer.getHashId()
                 );
 
                 peer.getPeerConnection().sendTextMsgToMe(roomChangeResponseMsg);
@@ -334,6 +339,7 @@ public class NeighborPeerManager {
             // try to close this peer connection
             try {
                 socketChannel.close();
+//                System.out.println("[debug] a connection has been successfully disconnected.");
             } catch (IOException e) {
                 System.out.println("err in handleDisconnectSocketChannel");
                 e.printStackTrace();

@@ -57,7 +57,7 @@ public class ChatServer implements Runnable {
     private final MessageQueueWorker MQWorker;
 
     private final NeighborPeerManager neighborPeerManager;
-    private final ChatRoomManager chatRoomManager;
+    public final ChatRoomManager chatRoomManager;
 
     private Client localclient;
 
@@ -156,16 +156,19 @@ public class ChatServer implements Runnable {
                 // get source peer based on socketChannel
                 Peer srcPeer = neighborPeerManager.getPeerWithSocketChannel(socketChannel);
 
-                // put in the MQ waiting for running
-                // handle logic is in 'handleRequest' method that is in this ChatServer class
-                MQWorker.handleIncomingTextMessage(this, srcPeer, incomingString);
+                // if doesn't get src Peer, it is removed peer's info, will not handle the msg
+                if (srcPeer != null) {
+                    // put in the MQ waiting for running
+                    // handle logic is in 'handleRequest' method that is in this ChatServer class
+                    MQWorker.handleIncomingTextMessage(this, srcPeer, incomingString);
+                }
             }
         } catch (Throwable t) {
-            t.printStackTrace();
+//            t.printStackTrace();
             // close buggy channel
             if (socketChannel != null) {
 //                socketChannel.close();
-                // System.out.println("[debug] closed a buggy socket");
+//                 System.out.println("[debug] closed a buggy socket");
                 neighborPeerManager.handleDisconnectNeighborSocketChannel(socketChannel);
             }
         }
@@ -189,8 +192,9 @@ public class ChatServer implements Runnable {
      */
     public void handleRequestCallback(Peer sourcePeer, String text) {
         // check peer livness, only handle living peer's request
-        if (neighborPeerManager.isPeerLivingByPeerId(sourcePeer.getIdentity())) {
-            // System.out.println("[debug] server is handling a request: " + text + " , from " + sourcePeer.getIdentity());
+
+        if (sourcePeer != null && neighborPeerManager.isPeerLivingByPeerId(sourcePeer.getIdentity())) {
+//            System.out.println("[debug] server is handling a request: " + text + " , from " + sourcePeer.getIdentity());
             JSONObject requestDataObject = JSONObject.parseObject(text);
 
             if (requestDataObject == null) {

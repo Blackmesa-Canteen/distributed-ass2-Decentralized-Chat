@@ -40,4 +40,6 @@ public class Constants {
     public static final String ROOM_CREATE_TYPE = "createroom";
     public static final String ROOM_Delete_TYPE = "delete";
 
+    public static final String HELP_TYPE = "help";
+
 }

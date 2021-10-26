@@ -21,4 +21,6 @@ public class RoomChangeMessage {
     @Builder.Default
     private String former = "";
     private String roomid;
+
+    private String peerHashId;
 }

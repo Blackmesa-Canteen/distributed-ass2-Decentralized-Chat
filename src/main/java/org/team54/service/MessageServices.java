@@ -56,11 +56,12 @@ public class MessageServices {
         return new Gson().toJson(jsonObject) + "\n";
     }
 
-    public static String genRoomChangeResponseMsg(String identity, String former, String roomId) {
+    public static String genRoomChangeResponseMsg(String identity, String former, String roomId, String peerHashId) {
         RoomChangeMessage jsonObject = RoomChangeMessage.builder()
                 .roomid(roomId)
                 .former(former)
                 .identity(identity)
+                .peerHashId(peerHashId)
                 .build();
 
         return new Gson().toJson(jsonObject) + "\n";

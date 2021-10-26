@@ -17,14 +17,20 @@ public class MessageQueueWorker implements Runnable {
     private BlockingQueue<ServerIncomingTextMessage> queue = new LinkedBlockingQueue<>();
 
     public void handleIncomingTextMessage(ChatServer server, Peer sourcePeer, String text) {
-        ServerIncomingTextMessage message = ServerIncomingTextMessage.builder()
-                .chatServer(server)
-                .sourcePeer(sourcePeer)
-                .text(text)
-                .build();
 
-        // System.out.println("[debug] a new incoming message is recieved in server. from " + sourcePeer.getIdentity());
-        queue.offer(message);
+        // handle exception: sometimes, multiple JSON object in one packet
+        String[] jsonStrings = text.split("\n");
+        for (String jsonString : jsonStrings) {
+
+            ServerIncomingTextMessage message = ServerIncomingTextMessage.builder()
+                    .chatServer(server)
+                    .sourcePeer(sourcePeer)
+                    .text(jsonString + "\n")
+                    .build();
+
+            // System.out.println("[debug] a new incoming message is recieved in server. from " + sourcePeer.getIdentity());
+            queue.offer(message);
+        }
     }
 
     @Override

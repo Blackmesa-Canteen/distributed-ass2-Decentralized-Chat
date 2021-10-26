@@ -153,7 +153,9 @@ public class ChatRoomManager {
                                 MessageServices.genRoomChangeResponseMsg(
                                         peer.getIdentity(),
                                         previousRoomId,
-                                        roomId),
+                                        roomId,
+                                        peer.getHashId()
+                                ),
                                 null
                         );
 
@@ -195,7 +197,9 @@ public class ChatRoomManager {
                                         MessageServices.genRoomChangeResponseMsg(
                                                 peer.getIdentity(),
                                                 previousRoomId,
-                                                roomId),
+                                                roomId,
+                                                peer.getHashId()
+                                        ),
                                         peer
                                 );
                                 prevRoom.getPeers().remove(peer);
@@ -213,7 +217,9 @@ public class ChatRoomManager {
                                 MessageServices.genRoomChangeResponseMsg(
                                         peer.getIdentity(),
                                         previousRoomId,
-                                        roomId),
+                                        roomId,
+                                        peer.getHashId()
+                                ),
                                 null
                         );
 
@@ -228,7 +234,12 @@ public class ChatRoomManager {
 
             // only send unchanged roomchange msg to that peer
             peer.getPeerConnection().sendTextMsgToMe(
-                    MessageServices.genRoomChangeResponseMsg(peer.getIdentity(), peer.getRoomId(), peer.getRoomId()));
+                    MessageServices.genRoomChangeResponseMsg(
+                            peer.getIdentity(),
+                            peer.getRoomId(),
+                            peer.getRoomId(),
+                            peer.getHashId()
+                    ));
         }
     }
 
@@ -306,7 +317,8 @@ public class ChatRoomManager {
                             MessageServices.genRoomChangeResponseMsg(
                                     targetPeer.getIdentity(),
                                     targetPeer.getRoomId(),
-                                    ""
+                                    "",
+                                    targetPeer.getHashId()
                             ),
                             null);
 
@@ -378,7 +390,8 @@ public class ChatRoomManager {
                                 MessageServices.genRoomChangeResponseMsg(
                                         peer.getIdentity(),
                                         roomId,
-                                        ""
+                                        "",
+                                        peer.getHashId()
                                 )
                         );
 

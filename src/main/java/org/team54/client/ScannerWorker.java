@@ -23,6 +23,7 @@ import com.alibaba.fastjson.JSONException;
 import com.alibaba.fastjson.JSONObject;
 import org.team54.utils.StringUtils;
 
+
 public class ScannerWorker implements Runnable{
     public static AtomicBoolean alive = new AtomicBoolean();
     public static AtomicBoolean waitingInput = new AtomicBoolean();
@@ -60,7 +61,7 @@ public class ScannerWorker implements Runnable{
                     System.out.printf("[%s] %s>", this.localPeer.getRoomId(), this.localPeer.getServerSideIdentity());
                 }
             }
-            
+
             waitingInput.set(true);
             String message = scanner.nextLine();
 
@@ -101,6 +102,9 @@ public class ScannerWorker implements Runnable{
                         break;
                     case Constants.SHOUT_JSON_TYPE:
                         handleShout(arr);
+                        break;
+                    case Constants.HELP_TYPE:
+                        handleHelp(arr);
                         break;
                     default:
                         System.out.println("no such command, please check");
@@ -145,15 +149,15 @@ public class ScannerWorker implements Runnable{
                         String quitMessaage = MessageServices.genQuitRequestMessage();
                         this.client.Write(quitMessaage);
                         this.client.waitingQuitResponse.set(true);
+                        System.out.println("[debug client] connect locally, change connect, send out quit response to local server");
                     }
 
                 }
 
                 // wait until disconnect from local finish
                 while( client.connectLocal.get()==true || this.client.waitingQuitResponse.get()==true){
-
+                    //System.out.println(client.waitingQuitResponse.get());
                 }
-                // System.out.println("[debug client] connect local is false");
 
                 // if the client has already connected to a server, return immediately
                 if(client.connectNum == 1){
@@ -168,13 +172,15 @@ public class ScannerWorker implements Runnable{
                 String [] addressArr = arr[1].split(":");
                 InetAddress address = InetAddress.getByName(addressArr[0]);
                 int port = Integer.parseInt(addressArr[1]);
-                // strat connection
-                this.client.startConn(-1,port,address);
+                // strat connection， with random port allocated by OS
+                this.client.startConn(Constants.NON_PORT_DESIGNATED,port,address);
                 // send hostchange message to server
                 String message = MessageServices.genHostChangeRequestMessage(client.getIdentity()[0]);
+
                 this.client.Write(message);
                 this.client.inConnectProcess.set(false);
             } catch (IOException | ArrayIndexOutOfBoundsException e){
+                e.printStackTrace();
                 System.out.println("bad #connect command");
             }
 
@@ -398,7 +404,7 @@ public class ScannerWorker implements Runnable{
             // start search net
             BFS bfs = new BFS();
             try{
-                HashMap<String, HashMap> BFSResult = bfs.search(localPeer);
+                HashMap<String, HashMap> BFSResult = bfs.search(localPeer,client);
                 for(String peerKey:BFSResult.keySet()){
                     System.out.println(peerKey);
                     HashMap<String, Integer> roomMap =  BFSResult.get(peerKey);
@@ -428,7 +434,7 @@ public class ScannerWorker implements Runnable{
                     for(int i = 1; i<arr.length;i++){
                         content += arr[i] + " ";
                     }
-                    String SM = MessageServices.genRootShoutChatRequestMessage(this.localPeer.getHashId(),content.trim());
+                    String SM = MessageServices.genRootShoutChatRequestMessage(StringUtils.genHashId(),content.trim());
                     this.client.Write(SM);
                 }else{//other unconsidered situation
                     System.out.println("command error");
@@ -439,6 +445,24 @@ public class ScannerWorker implements Runnable{
         }
     }
 
-
+    private void handleHelp(String[] arr){
+        if(arr.length == 1) {
+            // print help info
+            System.out.println("#help - list this information\n" +
+                    "#createroom [room name] - local command, create a room on current peer\n" +
+                    "#kick [peer identity] - local command, kick a peer from current room\n" +
+                    "#delete [room name] - local command, delete the room\n" +
+                    "#connect IP[:port] [local port] - connect to another peer\n" +
+                    "#quit - disconnect from a peer\n" +
+                    "#join [room name] - join a room, join \"\" to quit a room\n" +
+                    "#who [room name] - list room members\n" +
+                    "#list - list all the rooms\n" +
+                    "#listneighbors - list neighbors\n" +
+                    "#searchnetwork - search all reachable peer in net\n" +
+                    "#shout [message] - pass message to all reachable peers");
+        }else{
+            System.out.println("command error");
+        }
+    }
 
 }

@@ -1,12 +1,18 @@
 package org.team54.client;
 
+import com.alibaba.fastjson.JSONException;
 import com.alibaba.fastjson.JSONObject;
+import com.google.gson.Gson;
 import org.team54.app.ChatPeer;
 import org.team54.messageBean.RoomDTO;
 import org.team54.messageBean.RoomListMessage;
 import org.team54.messageBean.ServerRespondNeighborsMessage;
 import org.team54.messageBean.ShoutMessage;
 import org.team54.model.Peer;
+import org.team54.server.ChatServer;
+import org.team54.server.NeighborPeerManager;
+import org.team54.service.MessageServices;
+import org.team54.utils.CharsetConvertor;
 import org.team54.utils.Constants;
 
 import java.io.IOException;
@@ -15,8 +21,10 @@ import java.net.InetSocketAddress;
 import java.net.StandardSocketOptions;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
+import java.nio.CharBuffer;
 import java.nio.channels.SocketChannel;
 import java.nio.charset.StandardCharsets;
+import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -27,17 +35,23 @@ public class Client implements Runnable{
     public AtomicBoolean waitingQuitResponse = new AtomicBoolean();
     public AtomicBoolean waitingRoomChangeResponse = new AtomicBoolean();
     public AtomicBoolean inConnectProcess = new AtomicBoolean();
+
+    private final HashSet<String> shoutHashIdHistory = new HashSet<>();
     // record the number of connect the client established
     // connectNum should in [0,1], cannot connect to more than 1 server
     public int connectNum = 0;
 
     private Peer localPeer;
     private SocketChannel socketChannel;
+    private NeighborPeerManager neighborPeerManager;
+    private ChatServer chatServer;
     private ByteBuffer writeBuffer = ByteBuffer.allocate(2048);
     private ByteBuffer readBuffer = ByteBuffer.allocate(2048);
 
-    public Client(Peer localPeer){
+    public Client(Peer localPeer, ChatServer chatServer){
         this.localPeer = localPeer;
+        this.neighborPeerManager = NeighborPeerManager.getInstance();
+        this.chatServer = chatServer;
     }
 
     @Override
@@ -55,7 +69,7 @@ public class Client implements Runnable{
                     connectLocal();
                 }
                 Read(socketChannel);
-                //Thread.sleep(100);
+                // Thread.sleep(100);
             }catch (IOException e){
                 e.printStackTrace();
             }
@@ -79,12 +93,13 @@ public class Client implements Runnable{
         }
 
         // need to set ClientBind port to -1 for next connection
-        ChatPeer.setClientPort(-1);
+        // ChatPeer.setClientPort(-1);
         // reset values in localPeer
         resetPeer();
     }
 
     public SocketChannel startConn(int localport, int port, InetAddress address) throws IOException{
+
         // init a socketchannel and set to NIO mode
         SocketChannel socketChannel = SocketChannel.open();
         socketChannel.configureBlocking(false);
@@ -101,10 +116,13 @@ public class Client implements Runnable{
 
         // server's address, address+port e.g. 127.0.0.1:1234,
         InetSocketAddress isa = new InetSocketAddress(address,port);
+        // System.out.println("[debug client] server address is: " + isa);
+        socketChannel.configureBlocking(true); //阻塞连接
 
         socketChannel.connect(isa);
         socketChannel.finishConnect();
 
+        socketChannel.configureBlocking(false);  // 非阻塞连接
         this.socketChannel = socketChannel;
 
         if(socketChannel.isConnected()){
@@ -112,38 +130,66 @@ public class Client implements Runnable{
 
             localPeer.setPublicHostName(socketChannel.getRemoteAddress().toString().split(":")[0].replace("localhost","").replace("/",""));
             localPeer.setOutgoingPort(socketChannel.socket().getLocalPort());
-            localPeer.setLocalHostName(address.toString().split(":")[0].replace("localhost","").replace("/",""));
+            //localPeer.setLocalHostName(address.toString().split(":")[0].replace("localhost","").replace("/",""));
+            localPeer.setLocalHostName(socketChannel.getLocalAddress().toString().split(":")[0].replace("localhost","").replace("/",""));
             localPeer.setIdentity(localPeer.getLocalHostName()+":"+localPeer.getListenPort());
             localPeer.setServerSideIdentity(localPeer.getPublicHostName()+":"+localPeer.getOutgoingPort());
 
-            // System.out.println("[debug client] localhostName : " + localPeer.getLocalHostName());
-            // System.out.println("[debug client] outgoingPort : " + localPeer.getOutgoingPort());
-            // System.out.println("[debug client] listeningPort : " + localPeer.getListenPort());
-            // System.out.println("[debug client] identity : " + localPeer.getIdentity());
-            // System.out.println("[debug client] serverSideIdentity : " + localPeer.getServerSideIdentity());
+//            System.out.println("[debug client] publicHostName : " + localPeer.getPublicHostName());
+//             System.out.println("[debug client] localhostName : " + localPeer.getLocalHostName());
+//             System.out.println("[debug client] outgoingPort : " + localPeer.getOutgoingPort());
+//             System.out.println("[debug client] listeningPort : " + localPeer.getListenPort());
+//             System.out.println("[debug client] identity : " + localPeer.getIdentity());
+//             System.out.println("[debug client] serverSideIdentity : " + localPeer.getServerSideIdentity());
 
             // record the success connection, connect to sever, connectNum +1
             connectNum += 1;
         }else{
             System.out.println("connect fails, maybe bad server address");
         }
+
+
+        String masterPeerlocalHostName = address.toString().replace("localhost","").replace("/","");
+        String masterPeerPublicHostName = address.toString().replace("localhost","").replace("/","");
+
+        //System.out.println("is local peer "+ masterPeerPublicHostName.equals(localPeer.getLocalHostName()));
+        Peer masterPeer = Peer.builder().
+                listenPort(port).
+                localHostName(masterPeerlocalHostName).
+                publicHostName(masterPeerPublicHostName).
+                isSelfPeer(connectLocal.get()).
+                build();
+        neighborPeerManager.setMasterPeer(masterPeer);
+        //System.out.println("[debug client] masterPeer listen port " + masterPeer.getListenPort());
+        //System.out.println("[debug client] masterPeer publichostname " + masterPeer.getPublicHostName());
+        //System.out.println("[debug client] masterPeer isself " + masterPeer.isSelfPeer());
         // System.out.println("[debug client] finish connect");
         return socketChannel;
+        //set master Peer
+
+
     }
 
     public void connectLocal(){
         if(socketChannel == null || !socketChannel.isConnected()){
+            // System.out.println("[debug client] start connect local");
             // if no connection, try to connect local peer
             try{
                 connectLocal.set(true);
                 InetAddress address = InetAddress.getByName("localhost");
                 startConn(this.localPeer.getOutgoingPort(),this.localPeer.getListenPort(),address);
+                String hostChageMessage = MessageServices.genHostChangeRequestMessage(getIdentity()[0]);
+
+                System.out.println("[debug client] connect local finish, sending out host change message is: " + hostChageMessage);
+                Write(hostChageMessage);
+
+
             } catch (UnknownHostException e) {
                 System.out.println("[debug client] localhost not found when connecting itself");
             } catch (IOException e) {
                 System.out.println("[debug client] connect local fails");
             }
-
+            // System.out.println("[debug client] connect local success");
         }
     }
 
@@ -152,10 +198,13 @@ public class Client implements Runnable{
             System.out.println("not connected yet");
             return;
         }
-        writeBuffer.clear();
-        writeBuffer.put(message.getBytes(StandardCharsets.UTF_8));
-        writeBuffer.flip();
-        this.socketChannel.write(writeBuffer);
+        this.socketChannel.write(CharsetConvertor.encode(
+                CharBuffer.wrap(message)
+        ));
+//        writeBuffer.clear();
+//        writeBuffer.put(message.getBytes(StandardCharsets.UTF_8));
+//        writeBuffer.flip();
+//        this.socketChannel.write(writeBuffer);
     }
 
 
@@ -178,6 +227,8 @@ public class Client implements Runnable{
         if(readNum == -1){
             // System.out.println("[debug client] in client, bad read, socketchannel close");
             disConnect();
+
+
             return;
         }
         // pass the message to client worker
@@ -185,7 +236,7 @@ public class Client implements Runnable{
             //get the received data
             String data = new String(readBuffer.array(),0,readNum);
 
-            // print2Console("[debug client] received data is "+data);
+            print2Console("[debug client] received data is "+data);
             JSONObject replyDataObject = JSONObject.parseObject(data);
 
             //start to handle data
@@ -244,7 +295,7 @@ public class Client implements Runnable{
                 break;
             case Constants.SHOUT_JSON_TYPE:
                 print2Console(handleShoutMessage(replyDataObject));
-
+                break;
         }
     }
 
@@ -300,22 +351,49 @@ public class Client implements Runnable{
         return result;
     }
 
+
     private String handleShoutMessage(JSONObject replyDataObject){
         String result = "";
         ShoutMessage SM = replyDataObject.toJavaObject(replyDataObject,ShoutMessage.class);
 
         String identity = SM.getRootIdentity();
         String content = SM.getContent();
+        String shoutMessageHashId = SM.getShoutMessageHashId();
+
+
+//        if (content == null || identity == null || shoutMessageHashId == null) {
+//            throw new JSONException("Missing attributes");
+//        }
+
+        synchronized (shoutHashIdHistory) {
+            // 判断是否已经转发过这个shout信息了.如果已经转发过,无视这个请求
+            if (shoutHashIdHistory.contains(shoutMessageHashId)) {
+                return "";
+            }
+
+            // 新的shout shoutMessageHashId, 记录之
+            shoutHashIdHistory.add(shoutMessageHashId);
+        }
+
+        chatServer.chatRoomManager.broadcastMessageInAllRoom(new Gson().toJson(replyDataObject) + "\n");
+
+
         result = "[" + identity + " shouted]: " + content;
         return result;
     }
 
     private String handleRoomChangeMessage(JSONObject replyDataObject){
+        String hashID = replyDataObject.getString("peerHashId");
         String identity = replyDataObject.getString("identity");
         String roomid = replyDataObject.getString("roomid");
         String former = replyDataObject.getString("former");
         String result = "";
-        if(identity.equals(this.localPeer.getServerSideIdentity())){//if the current client is the one who changes room
+        
+//        System.out.println("[debug] hashId received: " + hashID);
+        // System.out.println("[debug client] received hashID: " + hashID);
+        // System.out.println("[debug client] local hashID: " + this.localPeer.getHashId());
+        if(this.localPeer.getHashId().equals(hashID)){
+        //if(identity.equals(this.localPeer.getServerSideIdentity())){//if the current client is the one who changes room
             if(waitingQuitResponse.get() == true){ // if the current peer is waiting for quit response
                 if(this.localPeer.getRoomId().length() != 0) {//quit when in a room
                     result = identity + " leaves " + this.localPeer.getRoomId();

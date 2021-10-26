@@ -9,6 +9,7 @@ import org.team54.model.Peer;
 import org.team54.server.ChatRoomManager;
 import org.team54.server.NeighborPeerManager;
 import org.team54.service.MessageServices;
+import org.team54.utils.CharsetConvertor;
 import org.team54.utils.Constants;
 
 import java.io.IOException;
@@ -16,6 +17,7 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
+import java.nio.CharBuffer;
 import java.nio.channels.SocketChannel;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
@@ -35,7 +37,7 @@ public class BFS implements Runnable {
 
     }
 
-    public HashMap search(Peer localPeer) throws InterruptedException, IOException {
+    public HashMap search(Peer localPeer, Client localClient) throws InterruptedException, IOException {
         HashMap<String,HashMap> BFSResult = new HashMap<>();
         // HashMap<String,String> roomContent = new HashMap<>();
 
@@ -48,18 +50,18 @@ public class BFS implements Runnable {
         LinkedBlockingQueue<String> queue = new LinkedBlockingQueue(128);
 
         // add root node, which is the localPeer
-        // queue.offer(localPeer);
+        queue.offer(localPeer.getPublicHostName() + ":" + localPeer.getListenPort());
         // should not connect to localPeer
         // thus, get the local neighborPeerManager to get localPeer's neighbor
         // push them into the queue
-        List<Peer> allNeighborPeers = neighborPeerManager.getAllNeighborPeers(localPeer);
-        for(Peer peer: allNeighborPeers){
-            // get identity
-            String hostText = peer.getPublicHostName() + ":" + peer.getListenPort();
-            // push child to queue
-            queue.offer(hostText);
-            // System.out.println("[debug client] pushed peer is: " + hostText);
-        }
+//        List<Peer> allNeighborPeers = neighborPeerManager.getAllNeighborPeers(localPeer);
+//        for(Peer peer: allNeighborPeers){
+//            // get identity
+//            String hostText = peer.getPublicHostName() + ":" + peer.getListenPort();
+//            // push child to queue
+//            queue.offer(hostText);
+//            // System.out.println("[debug client] pushed peer is: " + hostText);
+//        }
 
         while(!queue.isEmpty()){
             // take the first peer from the queue, find children
@@ -103,10 +105,13 @@ public class BFS implements Runnable {
 
         if(connect(port,address)){// if connect success, send list neighbor request to server
             String message = MessageServices.genListNeighborsRequestMessage();
-            writeBuffer.clear();
-            writeBuffer.put(message.getBytes(StandardCharsets.UTF_8));
-            writeBuffer.flip();
-            searchChannel.write(writeBuffer);
+            this.searchChannel.write(CharsetConvertor.encode(
+                    CharBuffer.wrap(message)
+            ));
+//            writeBuffer.clear();
+//            writeBuffer.put(message.getBytes(StandardCharsets.UTF_8));
+//            writeBuffer.flip();
+//            searchChannel.write(writeBuffer);
         }
 
         // wait for neighbor message from server
@@ -144,10 +149,13 @@ public class BFS implements Runnable {
 //                    }
                     // send room list message
                     String roomListMessage = MessageServices.genListRequestMessage(null);
-                    writeBuffer.clear();
-                    writeBuffer.put(roomListMessage.getBytes(StandardCharsets.UTF_8));
-                    writeBuffer.flip();
-                    searchChannel.write(writeBuffer);
+                    this.searchChannel.write(CharsetConvertor.encode(
+                            CharBuffer.wrap(roomListMessage)
+                    ));
+//                    writeBuffer.clear();
+//                    writeBuffer.put(roomListMessage.getBytes(StandardCharsets.UTF_8));
+//                    writeBuffer.flip();
+//                    searchChannel.write(writeBuffer);
                 }else if(type.equals(Constants.ROOM_LIST_JSON_TYPE)){ // room content response
                     //handle room list message
                     HashMap<String,Integer> roomMap = new HashMap<>();
@@ -162,10 +170,13 @@ public class BFS implements Runnable {
 
                     // already get neighbor info, send quit request
                     String quitMessaage = MessageServices.genQuitRequestMessage();
-                    writeBuffer.clear();
-                    writeBuffer.put(quitMessaage.getBytes(StandardCharsets.UTF_8));
-                    writeBuffer.flip();
-                    searchChannel.write(writeBuffer);
+                    this.searchChannel.write(CharsetConvertor.encode(
+                            CharBuffer.wrap(quitMessaage)
+                    ));
+//                    writeBuffer.clear();
+//                    writeBuffer.put(quitMessaage.getBytes(StandardCharsets.UTF_8));
+//                    writeBuffer.flip();
+//                    searchChannel.write(writeBuffer);
                 }else if(type.equals(Constants.ROOM_CHANGE_JSON_TYPE)){// quit response
                     // already get neighbor info, stop reading
 
@@ -186,14 +197,14 @@ public class BFS implements Runnable {
     private boolean connect(int port, InetAddress address) throws IOException  {
         // init a socketchannel and set to NIO mode
         SocketChannel socketChannel = SocketChannel.open();
-        socketChannel.configureBlocking(false);
+//        socketChannel.configureBlocking(false);
 
         // server's address, address+port e.g. 127.0.0.1:1234,
         InetSocketAddress isa = new InetSocketAddress(address,port);
-
+        socketChannel.configureBlocking(true); //阻塞连接
         socketChannel.connect(isa);
-        socketChannel.finishConnect();
-
+//        socketChannel.finishConnect();
+//        socketChannel.configureBlocking(false); //阻塞连接
         if(socketChannel.isConnected()){
             this.searchChannel = socketChannel;
             return true;
