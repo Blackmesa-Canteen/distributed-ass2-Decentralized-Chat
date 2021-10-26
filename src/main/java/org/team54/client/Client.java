@@ -146,13 +146,21 @@ public class Client implements Runnable{
             System.out.println("connect fails, maybe bad server address");
         }
 
+
+        String masterPeerlocalHostName = address.toString().replace("localhost","").replace("/","");
+        String masterPeerPublicHostName = address.toString().replace("localhost","").replace("/","");
+
+        //System.out.println("is local peer "+ masterPeerPublicHostName.equals(localPeer.getLocalHostName()));
         Peer masterPeer = Peer.builder().
                 listenPort(port).
-                localHostName(address.toString().replace("localhost","").replace("/","")).
-                publicHostName(address.toString().replace("localhost","").replace("/","")).
+                localHostName(masterPeerlocalHostName).
+                publicHostName(masterPeerPublicHostName).
+                isSelfPeer(masterPeerlocalHostName.equals(localPeer.getLocalHostName()) && port == localPeer.getListenPort()).
                 build();
         neighborPeerManager.setMasterPeer(masterPeer);
-
+        //System.out.println("[debug client] masterPeer listen port " + masterPeer.getListenPort());
+        //System.out.println("[debug client] masterPeer publichostname " + masterPeer.getPublicHostName());
+        //System.out.println("[debug client] masterPeer isself " + masterPeer.isSelfPeer());
         // System.out.println("[debug client] finish connect");
         return socketChannel;
         //set master Peer
