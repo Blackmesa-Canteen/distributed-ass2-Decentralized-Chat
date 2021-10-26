@@ -82,12 +82,12 @@ public class NeighborPeerManager {
 
         int listenPort = 0;
         String localHostString = "";
-        // System.out.println("[debug] handle incoming hostchange message.");
+        System.out.println("[debug] handle incoming hostchange message.");
         if (incomingHost != null) {
             listenPort = StringUtils.parsePortNumFromHostText(incomingHost);
             localHostString = StringUtils.parseHostStringFromHostText(incomingHost);
-            // System.out.println("[debug] incomingHost: " + incomingHost);
-            // System.out.println("[debug] server got listen port: " + listenPort);
+            System.out.println("[debug] incomingHost: " + incomingHost);
+            System.out.println("[debug] server got listen port: " + listenPort);
         }
 
         // incomingHost is private address,
