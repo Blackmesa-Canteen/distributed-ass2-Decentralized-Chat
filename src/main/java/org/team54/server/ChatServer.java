@@ -164,11 +164,11 @@ public class ChatServer implements Runnable {
                 }
             }
         } catch (Throwable t) {
-            t.printStackTrace();
+//            t.printStackTrace();
             // close buggy channel
             if (socketChannel != null) {
 //                socketChannel.close();
-                 System.out.println("[debug] closed a buggy socket");
+//                 System.out.println("[debug] closed a buggy socket");
                 neighborPeerManager.handleDisconnectNeighborSocketChannel(socketChannel);
             }
         }
