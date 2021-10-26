@@ -69,6 +69,7 @@ public class Client implements Runnable{
                     connectLocal();
                 }
                 Read(socketChannel);
+
                 // Thread.sleep(100);
             }catch (IOException e){
                 e.printStackTrace();
@@ -102,7 +103,7 @@ public class Client implements Runnable{
 
         // init a socketchannel and set to NIO mode
         SocketChannel socketChannel = SocketChannel.open();
-        socketChannel.configureBlocking(false);
+        // socketChannel.configureBlocking(false);
         // bind local port to the socket
         // if localport is -1, do not bind, establish the connect with random localport
         if(localport!=-1){
@@ -180,14 +181,14 @@ public class Client implements Runnable{
                 startConn(this.localPeer.getOutgoingPort(),this.localPeer.getListenPort(),address);
                 String hostChageMessage = MessageServices.genHostChangeRequestMessage(getIdentity()[0]);
 
-                System.out.println("[debug client] connect local finish, sending out host change message is: " + hostChageMessage);
+                // System.out.println("[debug client] connect local finish, sending out host change message is: " + hostChageMessage);
                 Write(hostChageMessage);
 
 
             } catch (UnknownHostException e) {
-                System.out.println("[debug client] localhost not found when connecting itself");
+                System.out.println("localhost not found when connecting itself");
             } catch (IOException e) {
-                System.out.println("[debug client] connect local fails");
+                System.out.println("connect local fails");
             }
             // System.out.println("[debug client] connect local success");
         }
@@ -236,7 +237,7 @@ public class Client implements Runnable{
             //get the received data
             String data = new String(readBuffer.array(),0,readNum);
 
-            print2Console("[debug client] received data is "+data);
+            // print2Console("[debug client] received data is "+data);
             JSONObject replyDataObject = JSONObject.parseObject(data);
 
             //start to handle data

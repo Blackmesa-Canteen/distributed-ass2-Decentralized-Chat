@@ -149,7 +149,7 @@ public class ScannerWorker implements Runnable{
                         String quitMessaage = MessageServices.genQuitRequestMessage();
                         this.client.Write(quitMessaage);
                         this.client.waitingQuitResponse.set(true);
-                        System.out.println("[debug client] connect locally, change connect, send out quit response to local server");
+                        // System.out.println("[debug client] connect locally, change connect, send out quit response to local server");
                     }
 
                 }
