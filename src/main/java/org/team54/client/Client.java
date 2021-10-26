@@ -386,6 +386,8 @@ public class Client implements Runnable{
         String roomid = replyDataObject.getString("roomid");
         String former = replyDataObject.getString("former");
         String result = "";
+        
+//        System.out.println("[debug] hashId received: " + hashID);
         // System.out.println("[debug client] received hashID: " + hashID);
         // System.out.println("[debug client] local hashID: " + this.localPeer.getHashId());
         if(this.localPeer.getHashId().equals(hashID)){
