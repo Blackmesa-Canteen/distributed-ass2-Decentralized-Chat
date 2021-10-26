@@ -190,7 +190,7 @@ public class NeighborPeerManager {
             // put、remove and clear need to get a lock
             synchronized (neighborMemberPeerMap) {
                 if (neighborMemberPeerMap.containsKey(newSocketChannel)) {
-                    System.out.println("[debug] please don't connect for twice.");
+                    // System.out.println("[debug] please don't connect for twice.");
                     return;
                 } else {
                     neighborMemberPeerMap.put(newSocketChannel, peerInstance);

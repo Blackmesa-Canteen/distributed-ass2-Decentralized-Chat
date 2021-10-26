@@ -179,6 +179,8 @@ public class Client implements Runnable{
                 InetAddress address = InetAddress.getByName("localhost");
                 startConn(this.localPeer.getOutgoingPort(),this.localPeer.getListenPort(),address);
                 String hostChageMessage = MessageServices.genHostChangeRequestMessage(getIdentity()[0]);
+
+                System.out.println("[debug client] connect local finish, sending out host change message is: " + hostChageMessage);
                 Write(hostChageMessage);
 
 
@@ -234,7 +236,7 @@ public class Client implements Runnable{
             //get the received data
             String data = new String(readBuffer.array(),0,readNum);
 
-            // print2Console("[debug client] received data is "+data);
+            print2Console("[debug client] received data is "+data);
             JSONObject replyDataObject = JSONObject.parseObject(data);
 
             //start to handle data
