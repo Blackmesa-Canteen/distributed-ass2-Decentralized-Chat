@@ -436,6 +436,7 @@ public class Client implements Runnable{
 
                 }else if(former.length() != 0 && "".equals(roomid)){ // 在房间时被踢出 或 房间被删除
                     result = identity + " leaves "+ former;
+                    this.localPeer.setRoomId("");
                 }
 
 

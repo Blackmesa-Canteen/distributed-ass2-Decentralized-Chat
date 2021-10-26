@@ -1,5 +1,6 @@
 package org.team54.client;
 
+import lombok.SneakyThrows;
 import org.team54.app.ChatPeer;
 import org.team54.messageBean.*;
 import org.team54.model.Peer;
@@ -42,10 +43,12 @@ public class ScannerWorker implements Runnable{
         this.chatRoomManager = ChatRoomManager.getInstance();
     }
 
+    @SneakyThrows
     @Override
     public void run(){
         alive.set(true);
         while(alive.get()){
+            Thread.sleep(200);
             if(client.connectLocal.get() == true){ // if connect locally, hide identity util join a room
                 if("".equals(this.localPeer.getRoomId()) && this.localPeer.getServerSideIdentity() == null){
                     System.out.printf(">");
