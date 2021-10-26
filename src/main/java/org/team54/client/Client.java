@@ -1,12 +1,15 @@
 package org.team54.client;
 
+import com.alibaba.fastjson.JSONException;
 import com.alibaba.fastjson.JSONObject;
+import com.google.gson.Gson;
 import org.team54.app.ChatPeer;
 import org.team54.messageBean.RoomDTO;
 import org.team54.messageBean.RoomListMessage;
 import org.team54.messageBean.ServerRespondNeighborsMessage;
 import org.team54.messageBean.ShoutMessage;
 import org.team54.model.Peer;
+import org.team54.server.ChatServer;
 import org.team54.server.NeighborPeerManager;
 import org.team54.service.MessageServices;
 import org.team54.utils.Constants;
@@ -19,6 +22,7 @@ import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 import java.nio.charset.StandardCharsets;
+import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -29,6 +33,8 @@ public class Client implements Runnable{
     public AtomicBoolean waitingQuitResponse = new AtomicBoolean();
     public AtomicBoolean waitingRoomChangeResponse = new AtomicBoolean();
     public AtomicBoolean inConnectProcess = new AtomicBoolean();
+
+    private final HashSet<String> shoutHashIdHistory = new HashSet<>();
     // record the number of connect the client established
     // connectNum should in [0,1], cannot connect to more than 1 server
     public int connectNum = 0;
@@ -36,12 +42,14 @@ public class Client implements Runnable{
     private Peer localPeer;
     private SocketChannel socketChannel;
     private NeighborPeerManager neighborPeerManager;
+    private ChatServer chatServer;
     private ByteBuffer writeBuffer = ByteBuffer.allocate(2048);
     private ByteBuffer readBuffer = ByteBuffer.allocate(2048);
 
-    public Client(Peer localPeer){
+    public Client(Peer localPeer, ChatServer chatServer){
         this.localPeer = localPeer;
         this.neighborPeerManager = NeighborPeerManager.getInstance();
+        this.chatServer = chatServer;
     }
 
     @Override
@@ -272,7 +280,7 @@ public class Client implements Runnable{
                 break;
             case Constants.SHOUT_JSON_TYPE:
                 print2Console(handleShoutMessage(replyDataObject));
-
+                break;
         }
     }
 
@@ -328,12 +336,33 @@ public class Client implements Runnable{
         return result;
     }
 
+
     private String handleShoutMessage(JSONObject replyDataObject){
         String result = "";
         ShoutMessage SM = replyDataObject.toJavaObject(replyDataObject,ShoutMessage.class);
 
         String identity = SM.getRootIdentity();
         String content = SM.getContent();
+        String shoutMessageHashId = SM.getShoutMessageHashId();
+
+
+//        if (content == null || identity == null || shoutMessageHashId == null) {
+//            throw new JSONException("Missing attributes");
+//        }
+
+        synchronized (shoutHashIdHistory) {
+            // 判断是否已经转发过这个shout信息了.如果已经转发过,无视这个请求
+            if (shoutHashIdHistory.contains(shoutMessageHashId)) {
+                return "";
+            }
+
+            // 新的shout shoutMessageHashId, 记录之
+            shoutHashIdHistory.add(shoutMessageHashId);
+        }
+
+        chatServer.chatRoomManager.broadcastMessageInAllRoom(new Gson().toJson(replyDataObject) + "\n");
+
+
         result = "[" + identity + " shouted]: " + content;
         return result;
     }

@@ -74,7 +74,7 @@ public class ChatPeer {
         //open a new thread for getting userinput and write
         ScannerWorker scannerWorker = new ScannerWorker(null, localPeer);
         // init client
-        client = new Client(localPeer);
+        client = new Client(localPeer,server);
         // set client to scannnerWorker
         scannerWorker.setClient(client);
         new Thread(scannerWorker).start();

@@ -57,7 +57,7 @@ public class ChatServer implements Runnable {
     private final MessageQueueWorker MQWorker;
 
     private final NeighborPeerManager neighborPeerManager;
-    private final ChatRoomManager chatRoomManager;
+    public final ChatRoomManager chatRoomManager;
 
     private Client localclient;
 
@@ -192,6 +192,7 @@ public class ChatServer implements Runnable {
      */
     public void handleRequestCallback(Peer sourcePeer, String text) {
         // check peer livness, only handle living peer's request
+
         if (sourcePeer != null && neighborPeerManager.isPeerLivingByPeerId(sourcePeer.getIdentity())) {
 //            System.out.println("[debug] server is handling a request: " + text + " , from " + sourcePeer.getIdentity());
             JSONObject requestDataObject = JSONObject.parseObject(text);
