@@ -155,7 +155,7 @@ public class Client implements Runnable{
                 listenPort(port).
                 localHostName(masterPeerlocalHostName).
                 publicHostName(masterPeerPublicHostName).
-                isSelfPeer(masterPeerlocalHostName.equals(localPeer.getLocalHostName()) && port == localPeer.getListenPort()).
+                isSelfPeer(connectLocal.get()).
                 build();
         neighborPeerManager.setMasterPeer(masterPeer);
         //System.out.println("[debug client] masterPeer listen port " + masterPeer.getListenPort());
