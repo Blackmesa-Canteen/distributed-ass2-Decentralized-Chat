@@ -1,5 +1,6 @@
 package org.team54.client;
 
+import lombok.SneakyThrows;
 import org.team54.app.ChatPeer;
 import org.team54.messageBean.*;
 import org.team54.model.Peer;
@@ -41,6 +42,7 @@ public class ScannerWorker implements Runnable{
         this.localPeer = localPeer;
         this.chatRoomManager = ChatRoomManager.getInstance();
     }
+
 
     @Override
     public void run(){
@@ -139,6 +141,7 @@ public class ScannerWorker implements Runnable{
             System.out.println("missing connect parameter");
         }else if(arr.length == 2){
             try {
+                Thread.sleep(200);
                 this.client.inConnectProcess.set(true);
                 // if connect locally, stop local connect first
                 if(this.client.connectLocal.get() == true){
@@ -149,7 +152,7 @@ public class ScannerWorker implements Runnable{
                         String quitMessaage = MessageServices.genQuitRequestMessage();
                         this.client.Write(quitMessaage);
                         this.client.waitingQuitResponse.set(true);
-                        System.out.println("[debug client] connect locally, change connect, send out quit response to local server");
+                        // System.out.println("[debug client] connect locally, change connect, send out quit response to local server");
                     }
 
                 }
@@ -179,7 +182,7 @@ public class ScannerWorker implements Runnable{
 
                 this.client.Write(message);
                 this.client.inConnectProcess.set(false);
-            } catch (IOException | ArrayIndexOutOfBoundsException e){
+            } catch (IOException | ArrayIndexOutOfBoundsException | InterruptedException e){
                 e.printStackTrace();
                 System.out.println("bad #connect command");
             }
