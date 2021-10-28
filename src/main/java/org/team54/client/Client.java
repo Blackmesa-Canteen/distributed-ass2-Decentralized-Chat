@@ -118,12 +118,12 @@ public class Client implements Runnable{
         // server's address, address+port e.g. 127.0.0.1:1234,
         InetSocketAddress isa = new InetSocketAddress(address,port);
         // System.out.println("[debug client] server address is: " + isa);
-        socketChannel.configureBlocking(true); //阻塞连接
+        socketChannel.configureBlocking(true);
 
         socketChannel.connect(isa);
         socketChannel.finishConnect();
 
-        socketChannel.configureBlocking(false);  // 非阻塞连接
+        socketChannel.configureBlocking(false);
         this.socketChannel = socketChannel;
 
         if(socketChannel.isConnected()){
@@ -367,12 +367,12 @@ public class Client implements Runnable{
 //        }
 
         synchronized (shoutHashIdHistory) {
-            // 判断是否已经转发过这个shout信息了.如果已经转发过,无视这个请求
+            // Check if the shout message has been forwarded. If it has been forwarded, ignore the request
             if (shoutHashIdHistory.contains(shoutMessageHashId)) {
                 return "";
             }
 
-            // 新的shout shoutMessageHashId, 记录之
+            // New Shout shoutMessageHashId, record it
             shoutHashIdHistory.add(shoutMessageHashId);
         }
 
@@ -430,11 +430,11 @@ public class Client implements Runnable{
                 // finish handling roomchange message, back to common state
                 waitingRoomChangeResponse.set(false);
             } else{ // if the current peer is just listening
-                //在没有请求roomchange的情况下，收到本机的roomchange信息，
-                // 可能被kick或这room被删除
-                if(former.equals(roomid) && "".equals(former)){ //未加入房间时被kick
+                //Received the roomchange message from this machine without requesting roomchange,
+                // May be kicked or the room deleted
+                if(former.equals(roomid) && "".equals(former)){ // Kicked when not joining a room
 
-                }else if(former.length() != 0 && "".equals(roomid)){ // 在房间时被踢出 或 房间被删除
+                }else if(former.length() != 0 && "".equals(roomid)){ // Being kicked out of the room or deleted from the room while in it
                     result = identity + " leaves "+ former;
                     this.localPeer.setRoomId("");
                 }

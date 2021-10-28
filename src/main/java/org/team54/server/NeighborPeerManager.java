@@ -22,12 +22,9 @@ public class NeighborPeerManager {
 
     private static NeighborPeerManager instance;
 
-    /** TODO this is master peer, 就是当这个本Peer A以成员身份加入Peer B的聊天室, masterPeer就用来保存下上游Peer B的地址的文本信息,
-     *  主要为了获得到本peer加入的房间server的域名文本信息,这样list neighbor就能正常显示上游的peer节点的地址了 */
-    /** masterPeer 是唯一的,因为一个peer同时只能加入一个peer,和其一个聊天室 */
-    /** 如果master peer 是这个服务器自己, isSelfPeer设为true, 防止list neighbor时重复list出来自己 */
-    /** masterPeer 不用存peerConnection字段,因为不会在server这里以server身份给masterPeer发信息 */
-    /** masterPeer 其余的字段设置好; 如果和这个masterPeer断开了,就把masterPeer设置为""; 如果又连接新的Peer准备加房,再设置上它 */
+    /**
+     * Master peer is upper server peer of this peer
+     */
     private Peer masterPeer;
 
     /** These are member peer */
@@ -56,7 +53,6 @@ public class NeighborPeerManager {
     }
 
     /**
-     * // TODO 获得masterPeer
      * @return masterPeer
      */
     public Peer getMasterPeer() {
@@ -64,7 +60,6 @@ public class NeighborPeerManager {
     }
 
     /**
-     * // TODO 不要忘记设置masterPeer,如果当本Peer主动连接到另一个Peer, 设置那个Peer的各种文本信息(主要是域名信息)实例化成Peer对象,放进来; 当本peer quit了那个peer, 置masterPeer为"",
      * @param masterPeer
      */
     public void setMasterPeer(Peer masterPeer) {

@@ -22,7 +22,7 @@ public class MessageServices {
     private static final NeighborPeerManager neighborPeerManager = NeighborPeerManager.getInstance();
 
     /**
-     * TODO used by client to gen hostChange Message right after the connect attempt
+     * used by client to gen hostChange Message right after the connect attempt
      *
      * @param host hostString:listenPort
      * @return json request for sending
@@ -35,7 +35,7 @@ public class MessageServices {
         return new Gson().toJson(jsonObject) + "\n";
     }
 
-    /** TODO used by client to gen quit request */
+    /** used by client to gen quit request */
     public static String genQuitRequestMessage() {
         QuitMessage jsonObject = QuitMessage.builder().build();
 
@@ -43,7 +43,7 @@ public class MessageServices {
     }
 
     /**
-     * TODO used by client gen join a room request
+     * used by client gen join a room request
      *
      * @param roomId room Id want to join
      * @return json request for sending
@@ -68,7 +68,7 @@ public class MessageServices {
     }
 
     /**
-     * TODO used by client to gen who query message request
+     * used by client to gen who query message request
      *
      * @param roomId room Id that want to issue who command
      * @return request json to send
@@ -99,7 +99,7 @@ public class MessageServices {
         return new Gson().toJson(jsonObject) + "\n";
     }
 
-    /** TODO used by client to gen chat message request to server */
+    /** used by client to gen chat message request to server */
     public static String genClientChatMessage(String content) {
         ClientSendMessage jsonObject = ClientSendMessage.builder()
                 .content(content)
@@ -109,7 +109,7 @@ public class MessageServices {
     }
 
     /**
-     * TODO used by client to gen shout message to server
+     * used by client to gen shout message to server
      * only need content, the rest of attributes will be handled by server
      *
      * @return shout message json
@@ -143,7 +143,7 @@ public class MessageServices {
         return new Gson().toJson(jsonObject) + "\n";
     }
 
-    /** TODO used by client to gen list message to get Room list request from server */
+    /** used by client to gen list message to get Room list request from server */
     public static String genListRequestMessage(String roomId) {
         ListMessage jsonObject = ListMessage.builder().build();
 
@@ -175,7 +175,7 @@ public class MessageServices {
         return new Gson().toJson(jsonObject) + "\n";
     }
 
-    /** TODO used by client to get list neighbors request of a remote server */
+    /** used by client to get list neighbors request of a remote server */
     public static String genListNeighborsRequestMessage() {
         ClientListNeighborsMessage jsonObject = ClientListNeighborsMessage.builder().build();
         return new Gson().toJson(jsonObject) + "\n";

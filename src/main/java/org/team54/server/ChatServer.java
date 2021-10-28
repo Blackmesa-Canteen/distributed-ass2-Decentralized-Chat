@@ -176,13 +176,11 @@ public class ChatServer implements Runnable {
     }
 
     /**
-     * 记录本server peer是否已经转发过同一个shout message
+     * Record whether the local server peer forwards the same shout message
      */
     private final HashSet<String> shoutHashIdHistory = new HashSet<>();
 
     /**
-     * TODO 在这里,peer会应付从监听端口到来的下游peers们的请求,并给对应下游peer或者room members的out port给对应的回应
-     *
      * Callback that handle text requests
      * <p>
      * parse incoming text request, and react to it
@@ -204,7 +202,7 @@ public class ChatServer implements Runnable {
             String requestType = requestDataObject.getString("type");
             if (requestType != null) {
                 // System.out.println("[debug] server got chat message.");
-                // chat聊天信息广播转发
+                // chat message broadcast
                 if (requestType.equals(Constants.MESSAGE_JSON_TYPE)) {
                     String content = requestDataObject.getString("content");
                     if (content == null) {
@@ -217,7 +215,8 @@ public class ChatServer implements Runnable {
                             , relayMessage,
                             null);
 
-                    // Hostchange信息,client连接后立刻会发送过来, 用来给Peer model赋予listening port信息
+                    // The client sends the Hostchange information immediately after the connection to assign
+                    // the Listening port information to the Peer model
                 } else if (requestType.equals(Constants.HOST_CHANGE_JSON_TYPE)) {
                     // System.out.println("[debug] server got hostchange message");
                     String host = requestDataObject.getString("host");
@@ -227,7 +226,7 @@ public class ChatServer implements Runnable {
                     }
                     neighborPeerManager.updatePeerWithHostChange(sourcePeer, host, peerHashId);
 
-                    // join请求
+                    // join
                 } else if (requestType.equals(Constants.JOIN_JSON_TYPE)) {
                     // System.out.println("[debug] server got join message.");
                     String roomId = requestDataObject.getString("roomid");
@@ -236,7 +235,7 @@ public class ChatServer implements Runnable {
                     }
                     chatRoomManager.joinPeerToRoom(roomId, sourcePeer);
 
-                    // who请求, 回应所需信息给该client
+                    // who
                 } else if (requestType.equals(Constants.WHO_JSON_TYPE)) {
                     // System.out.println("[debug] server got who message.");
                     String roomId = requestDataObject.getString("roomid");
@@ -246,25 +245,24 @@ public class ChatServer implements Runnable {
 
                     chatRoomManager.sendRoomContentMsgToPeer(sourcePeer, roomId);
 
-                    // list请求, 回应所需信息给该client
+                    // list
                 } else if (requestType.equals(Constants.LIST_JSON_TYPE)) {
                     // System.out.println("[debug] server got list message.");
                     chatRoomManager.sendRoomListMsgToPeer(sourcePeer);
 
-                    // quit请求
+                    // quit
                 } else if (requestType.equals(Constants.QUIT_JSON_TYPE)) {
                     // System.out.println("[debug] server got quit message.");
                     neighborPeerManager.handleDisconnectNeighborPeer(sourcePeer);
 
-                    // listNeighbors请求, 回应所需信息给该client
+                    // listNeighbors
                 } else if (requestType.equals(Constants.LIST_NEIGHBORS_JSON_TYPE)) {
                     // System.out.println("[debug] server got listneighbors message.");
                     List<Peer> allNeighborPeers = neighborPeerManager.getAllNeighborPeers(sourcePeer);
                     String responseMsg = MessageServices.genListNeighborsResponseMsg(sourcePeer, allNeighborPeers);
                     sourcePeer.getPeerConnection().sendTextMsgToMe(responseMsg);
 
-                    // TODO shout
-                    // shout请求
+                    // shout
                 } else if (requestType.equals(Constants.SHOUT_JSON_TYPE)) {
                     // System.out.println("[debug] server got shout message.");
 
@@ -276,35 +274,34 @@ public class ChatServer implements Runnable {
                         throw new JSONException("Missing attributes");
                     }
 
-                    // 只有加入了房间的peer才能shout
+                    // Only peers that have joined the room can shout
                     if ("".equals(sourcePeer.getRoomId())) {
                         return;
                     }
 
                     synchronized (shoutHashIdHistory) {
-                        // 判断是否已经转发过这个shout信息了.如果已经转发过,无视这个请求
+                        // Check if the shout message has been forwarded. If it has been forwarded, ignore the request
                         if (shoutHashIdHistory.contains(shoutMessageHashId)) {
                             return;
                         }
 
-                        // 新的shout shoutMessageHashId, 记录之
+                        // New Shout shoutMessageHashId, record it
                         shoutHashIdHistory.add(shoutMessageHashId);
                     }
 
-                    // 如果 rootIdentity 为"",说明该客户是发shout的root, 赋值这个客户peer的公网identity在message上,然后转发
+                    // If rootIdentity is "", it means that the client is the root that sends shout,
+                    // assigns the public network identity of the client peer to message, and then forwards it
                     if ("".equals(rootIdentity)) {
                         // System.out.println("[debug] server got shout message, it is root shout.");
                         rootIdentity = sourcePeer.getPublicHostName() + ":" + sourcePeer.getOutgoingPort();
 
-                        // 重新生成一个带rootIdentity的shoutMsg
+                        // Re-generate a shoutMsg with rootIdentity
                         String newShoutMessageWithRootIdentity =
                                 MessageServices.genRelayShoutChatMessage(shoutMessageHashId, content, rootIdentity);
 
-                        // 将这个新的shoutMessage广播到所有子房间
+                        // Broadcast the new shoutMessage to all child rooms
                         chatRoomManager.broadcastMessageInAllRoom(newShoutMessageWithRootIdentity);
 
-                        // TODO 本peer还要将这个新消息发往上游的chatroom server(如果存在的话)
-                        // 需要在client里实现,因为只有client里能够和上游server的listening port直接通信
                         // List<Peer> allNeighborPeers = neighborPeerManager.getAllNeighborPeers();
                         if(this.localclient.alive.get()){ // if the local client has connection with other server
                             try{
@@ -317,13 +314,11 @@ public class ChatServer implements Runnable {
 
                     } else {
                         // System.out.println("[debug] server got shout message, it is NOT a root shout.");
-                        // 不修改源请求,直接转发源请求shoutMessage
-                        // 广播到所有子房间
-                        // text 为收到的原始的JSON string text
+                        // The source request shoutMessage is directly forwarded without modifying the source request
+                        // Broadcast to all sub-rooms
+                        // Text indicates the original JSON string text received
                         chatRoomManager.broadcastMessageInAllRoom(text);
 
-                        // TODO 本peer还要将这个新消息发往上游的chatroom, 如果存在的话
-                        // 需要在client里实现,因为只有client里能够和上游server的listening port直接通信
                         if(this.localclient.alive.get()){ // if the local client has connection with other server
                             try{
                                 this.localclient.Write(text);

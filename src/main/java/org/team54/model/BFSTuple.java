@@ -7,7 +7,6 @@ import java.util.HashMap;
 import java.util.List;
 
 /**
- * @author Xiaotian
  * @program distributed-ass2-Decentralized-Chat
  * @description
  * @create 2021-10-08 11:00

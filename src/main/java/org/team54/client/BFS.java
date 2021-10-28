@@ -201,10 +201,10 @@ public class BFS implements Runnable {
 
         // server's address, address+port e.g. 127.0.0.1:1234,
         InetSocketAddress isa = new InetSocketAddress(address,port);
-        socketChannel.configureBlocking(true); //阻塞连接
+        socketChannel.configureBlocking(true); // block conn
         socketChannel.connect(isa);
 //        socketChannel.finishConnect();
-//        socketChannel.configureBlocking(false); //阻塞连接
+//        socketChannel.configureBlocking(false);
         if(socketChannel.isConnected()){
             this.searchChannel = socketChannel;
             return true;

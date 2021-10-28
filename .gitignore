@@ -10,5 +10,4 @@ build/classes/java/main/org/team54/server/NeighborPeerManager.class
 out/artifacts/.DS_Store
 out/artifacts/peer_jar/.DS_Store
 *.jar
-*.class
-*.bin
+/out/
