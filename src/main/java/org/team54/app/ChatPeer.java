@@ -80,7 +80,6 @@ public class ChatPeer {
         new Thread(scannerWorker).start();
         new Thread(client).start();
 
-        // shout 相关
         server.setLocalclient(client);
 
     }

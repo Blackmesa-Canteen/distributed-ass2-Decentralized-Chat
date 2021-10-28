@@ -35,13 +35,15 @@ public class Peer {
 
     private PeerConnection peerConnection;
 
-    /** 公网ip "xxx.xxx.xxx.xxx", 不包含端口, 本机自己的peer得不到公网ip,就先放着本地ip吧 */
+    /** public ip "xxx.xxx.xxx.xxx" */
     private String publicHostName;
-    /** outgoing */
+    /** outgoing port */
     private int outgoingPort;
-    /** 这用来存从client发出的hostchange内容里的 123.123.123.123:4444 的 123.123.123.123, 因为本机自己的peer得不到公网ip所以hostchange里只能够得到本地ip */
+    /** This is used to save 123.123.123.123.123.123.123:4444 in the hostchange content sent from the client.
+     * Because the local peer cannot obtain the public IP address, only the local IP address can be obtained
+     * in hostchange */
     private String localHostName;
-    /** listening port, 这用来存从client发出的hostchange内容里的 123.123.123.123:4444 的 4444 */
+    /** listening port, This is used to hold 4444 of 123.123.123.123:4444 in hostchange content sent from client */
     private volatile int listenPort;
 
     /** whether this peer is the peer himself, or is a remote peer */
